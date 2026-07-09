@@ -1,0 +1,6 @@
+{
+  "name": "Sparkex AI",
+  "description": "A premium AI assistant designed with a modern chatbot interface, deep research, and multimodal generation capabilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
