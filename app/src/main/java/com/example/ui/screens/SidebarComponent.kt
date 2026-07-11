@@ -101,33 +101,13 @@ fun SidebarComponent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF7F7F8))
-                        .border(1.dp, Color(0xFFE5E5EA), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (profile.avatarPath != null) {
-                        AsyncImage(
-                            model = File(profile.avatarPath),
-                            contentDescription = "Profile Avatar",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Outlined.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.Black
-                        )
-                    }
-                }
+                CircleAvatar(
+                    avatarPath = profile.avatarPath,
+                    name = profile.name.ifBlank { "Sparkex User" }
+                )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = profile.name,
+                        text = profile.name.ifBlank { "Sparkex User" },
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.Black,
@@ -145,7 +125,7 @@ fun SidebarComponent(
 
             HorizontalDivider(color = Color(0xFFE5E5EA), thickness = 1.dp)
 
-            // New Chat Button
+            // Redesigned Pill-shaped New Chat Button with subtle background and border
             OutlinedButton(
                 onClick = {
                     onNewChat()
@@ -153,16 +133,17 @@ fun SidebarComponent(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color(0xFFF7F7F8), // Subtle background
                     contentColor = Color.Black
                 ),
-                border = BorderStroke(1.dp, Color(0xFFE5E5EA)),
-                shape = RoundedCornerShape(24.dp),
-                contentPadding = PaddingValues(vertical = 12.dp)
+                border = BorderStroke(1.dp, Color(0xFFE5E5EA)), // Subtle border
+                shape = RoundedCornerShape(50.dp), // Prominent pill/capsule style
+                contentPadding = PaddingValues(vertical = 14.dp)
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Add,
                     contentDescription = "New Chat Icon",
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("New Chat", fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -320,8 +301,14 @@ fun SidebarComponent(
 
             HorizontalDivider(color = Color(0xFFE5E5EA), thickness = 1.dp)
 
-            // Sidebar Footer Navigation Shortcuts
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Sidebar Footer Navigation Shortcuts with safe system navigation bar padding
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 SidebarShortcutItem(
                     icon = Icons.Outlined.CardMembership,
                     title = "Membership",
@@ -345,6 +332,46 @@ fun SidebarComponent(
                         onNavigateToHelp()
                         onCloseSidebar()
                     }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CircleAvatar(
+    avatarPath: String?,
+    name: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(Color(0xFFF7F7F8))
+            .border(1.dp, Color(0xFFE5E5EA), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (avatarPath != null) {
+            AsyncImage(
+                model = File(avatarPath),
+                contentDescription = "Profile Avatar",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            val initial = if (name.isNotBlank()) name.take(1).uppercase() else "S"
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = initial,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
                 )
             }
         }

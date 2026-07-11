@@ -22,8 +22,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -118,30 +122,7 @@ fun ChatScreen(
                             )
                         }
                     },
-                    actions = {
-                        // Temporary Chat on the right side
-                        TextButton(
-                            onClick = {
-                                viewModel.startNewSession()
-                                Toast.makeText(context, "Started a new fresh chat.", Toast.LENGTH_SHORT).show()
-                            },
-                            contentPadding = PaddingValues(horizontal = 12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.ChatBubbleOutline,
-                                contentDescription = "Temporary Chat",
-                                tint = Color(0xFF6E6E73),
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Temporary",
-                                color = Color(0xFF6E6E73),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    },
+                    actions = {},
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                         containerColor = Color(0xFFF7F7F8)
                     )
@@ -168,19 +149,38 @@ fun ChatScreen(
                             // Friendly welcome message
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(bottom = 32.dp)
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.padding(bottom = 36.dp)
                             ) {
-                                Text(
-                                    text = "Sparkex AI",
-                                    fontSize = 28.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.Black
+                                val geminiGradient = Brush.linearGradient(
+                                    colors = listOf(Color(0xFF4285F4), Color(0xFF9b72cb), Color(0xFFd96570))
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Icon(
+                                    imageVector = Icons.Outlined.AutoAwesome,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .graphicsLayer(alpha = 0.99f)
+                                        .drawWithCache {
+                                            onDrawWithContent {
+                                                drawContent()
+                                                drawRect(
+                                                    brush = geminiGradient,
+                                                    blendMode = BlendMode.SrcAtop
+                                                )
+                                            }
+                                        }
+                                )
+
                                 Text(
                                     text = "How can I help you today?",
-                                    fontSize = 15.sp,
-                                    color = Color(0xFF6E6E73)
+                                    fontSize = 26.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    style = androidx.compose.ui.text.TextStyle(
+                                        brush = geminiGradient
+                                    ),
+                                    letterSpacing = (-0.5).sp
                                 )
                             }
 
@@ -404,10 +404,9 @@ fun ChatScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFE5E5EA), RoundedCornerShape(28.dp))
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                            .clip(RoundedCornerShape(50))
+                            .background(Color(0xFFF0F4F9))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Plus Button
@@ -557,39 +556,53 @@ fun ShortcutCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val (bgCircleColor, iconTint) = when (title) {
+        "Business Ideas" -> Pair(Color(0xFFFEF3C7), Color(0xFFD97706)) // Amber/Gold theme
+        "Study Helper" -> Pair(Color(0xFFDBEAFE), Color(0xFF2563EB))   // Blue theme
+        "Coding Help" -> Pair(Color(0xFFEEF2F6), Color(0xFF4F46E5))    // Indigo theme
+        else -> Pair(Color(0xFFFFEDD5), Color(0xFFEA580C))             // Orange/Warm theme
+    }
+
     Card(
         onClick = onClick,
-        modifier = modifier.height(110.dp),
+        modifier = modifier.height(115.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = Color(0xFFF0F4F9)
         ),
-        border = BorderStroke(1.dp, Color(0xFFE5E5EA)),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(24.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(14.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.Black,
-                modifier = Modifier.size(24.dp) // Uniform size throughout
-            )
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(bgCircleColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
 
             Column {
                 Text(
                     text = title,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     color = Color.Black
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = Color(0xFF6E6E73),
                     maxLines = 1
                 )

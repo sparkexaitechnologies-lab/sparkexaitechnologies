@@ -19,9 +19,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -78,30 +80,40 @@ fun MembershipsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AutoAwesome,
-                            contentDescription = "AI Plans",
-                            tint = Color.Black,
-                            modifier = Modifier.size(44.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.AutoAwesome,
+                                contentDescription = "AI Plans",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        
                         Text(
                             text = "Elevate Your Workspace",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold,
                             color = Color.Black,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            letterSpacing = (-0.5).sp
                         )
                         Text(
                             text = "Choose a processing speed and model capacity level designed to optimize your professional workflow.",
                             fontSize = 14.sp,
                             color = Color(0xFF6E6E73),
                             textAlign = TextAlign.Center,
-                            lineHeight = 20.sp,
-                            modifier = Modifier.padding(horizontal = 12.dp)
+                            lineHeight = 22.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
                 }
@@ -248,8 +260,9 @@ fun MembershipsScreen(
 
                         Text(
                             text = "Subscriptions automatically renew monthly unless canceled in account settings. Billing handled securely through native platform services.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF6E6E73),
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 11.sp,
+                            color = Color(0xFF8E8E93).copy(alpha = 0.8f),
                             textAlign = TextAlign.Center,
                             lineHeight = 16.sp,
                             modifier = Modifier.padding(horizontal = 24.dp)
@@ -312,7 +325,7 @@ fun MembershipsScreen(
                                 onClick = { showSuccessAnimation = false },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(50.dp)
                             ) {
                                 Text("Let's Go", fontWeight = FontWeight.Bold)
                             }
@@ -332,52 +345,115 @@ fun PlanSelectionCard(
     benefits: List<String>,
     onActionClick: () -> Unit
 ) {
+    val isProPlus = title == "Pro Plus"
+    val accentColor = when (title) {
+        "Pro" -> Color(0xFF6366F1) // Indigo accent
+        "Pro Plus" -> Color(0xFFF59E0B) // Amber/Gold accent
+        else -> Color(0xFF6E6E73) // Cool Gray
+    }
+
+    val badgeText = when (title) {
+        "Pro" -> "POPULAR"
+        "Pro Plus" -> "BEST VALUE"
+        else -> "ESSENTIAL"
+    }
+
+    val cardBorder = if (isProPlus) {
+        BorderStroke(
+            width = 2.5.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(Color(0xFFF59E0B), Color(0xFFEF4444)) // Premium amber-red gradient
+            )
+        )
+    } else {
+        BorderStroke(
+            width = if (isActive) 2.dp else 1.dp,
+            color = if (isActive) accentColor else Color(0xFFE5E5EA)
+        )
+    }
+
+    val cardBgColor = if (isProPlus) {
+        Color(0xFFFFFDF9) // Distinct subtle warm/gold premium background fill
+    } else {
+        Color.White
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(
-            width = if (isActive) 1.5.dp else 1.dp,
-            color = if (isActive) Color.Black else Color(0xFFE5E5EA)
-        )
+        colors = CardDefaults.cardColors(
+            containerColor = cardBgColor
+        ),
+        shape = RoundedCornerShape(20.dp),
+        border = cardBorder
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // Badge tag
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (isProPlus) {
+                                    Color(0xFFF59E0B).copy(alpha = 0.12f)
+                                } else {
+                                    accentColor.copy(alpha = 0.12f)
+                                }
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = badgeText,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isProPlus) Color(0xFFD97706) else accentColor,
+                            letterSpacing = 0.8.sp
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(2.dp))
+                    
                     Text(
                         text = title,
-                        fontSize = 18.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
                     Text(
                         text = price,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF6E6E73)
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.Black
                     )
                 }
 
                 if (isActive) {
-                    Icon(
-                        imageVector = Icons.Outlined.CheckCircle,
-                        contentDescription = "Selected Plan",
-                        tint = Color.Black,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(accentColor)
+                            .padding(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Check,
+                            contentDescription = "Active Plan",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
-            HorizontalDivider(color = Color(0xFFF7F7F8), thickness = 1.dp)
+            HorizontalDivider(color = Color(0xFFF2F2F7), thickness = 1.dp)
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 benefits.forEach { benefit ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -385,35 +461,37 @@ fun PlanSelectionCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Check,
+                            imageVector = Icons.Outlined.CheckCircle,
                             contentDescription = null,
-                            tint = Color.Black,
-                            modifier = Modifier.size(16.dp)
+                            tint = accentColor,
+                            modifier = Modifier.size(18.dp)
                         )
                         Text(
                             text = benefit,
                             fontSize = 13.sp,
-                            color = Color.Black,
+                            color = Color(0xFF1C1C1E),
                             lineHeight = 18.sp
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Button(
                 onClick = onActionClick,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isActive) Color(0xFFE5E5EA) else Color.Black,
-                    contentColor = if (isActive) Color(0xFF6E6E73) else Color.White
+                    containerColor = if (isActive) Color(0xFFF2F2F7) else if (isProPlus) Color(0xFFD97706) else accentColor,
+                    contentColor = if (isActive) Color(0xFF8E8E93) else Color.White
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(50.dp), // Premium, pill-shaped fully rounded corners
+                contentPadding = PaddingValues(vertical = 12.dp)
             ) {
                 Text(
                     text = if (isActive) "Currently Active" else "Upgrade Plan",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
                 )
             }
         }

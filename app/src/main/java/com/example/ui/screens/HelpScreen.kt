@@ -120,20 +120,21 @@ fun HelpScreen(
         ) {
             item {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(bottom = 12.dp)
                 ) {
                     Text(
-                        text = "Welcome to Sparkex AI!",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        text = "Welcome to Sparkex AI",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.Black,
+                        letterSpacing = (-0.5).sp
                     )
                     Text(
                         text = "This application is built with pristine, zero-distraction layout principles. Follow this step-by-step breakdown on how to leverage our high-performance assistance system:",
                         fontSize = 14.sp,
                         color = Color(0xFF6E6E73),
-                        lineHeight = 20.sp
+                        lineHeight = 22.sp
                     )
                 }
             }
@@ -142,7 +143,7 @@ fun HelpScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     border = BorderStroke(1.dp, Color(0xFFE5E5EA))
                 ) {
                     Column(
@@ -151,66 +152,71 @@ fun HelpScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(44.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFFF7F7F8))
-                                    .border(1.dp, Color(0xFFE5E5EA), CircleShape),
+                                    .background(Color.Black),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = section.icon,
                                     contentDescription = null,
-                                    tint = Color.Black,
-                                    modifier = Modifier.size(20.dp) // Sized consistently
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                             Column {
                                 Text(
                                     text = section.title,
-                                    fontSize = 15.sp,
+                                    fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black
                                 )
                                 Text(
                                     text = section.description,
                                     fontSize = 12.sp,
-                                    color = Color(0xFF6E6E73)
+                                    color = Color(0xFF6E6E73),
+                                    lineHeight = 16.sp
                                 )
                             }
                         }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        HorizontalDivider(color = Color(0xFFF2F2F7), thickness = 1.dp)
+
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             section.steps.forEachIndexed { index, step ->
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
                                     verticalAlignment = Alignment.Top
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(20.dp)
+                                            .size(24.dp)
                                             .clip(CircleShape)
-                                            .background(Color.White)
-                                            .border(1.dp, Color(0xFFE5E5EA), CircleShape),
+                                            .background(Color(0xFFF2F2F7)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = "${index + 1}",
                                             fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
+                                            fontWeight = FontWeight.ExtraBold,
                                             color = Color.Black
                                         )
                                     }
+                                    
+                                    Spacer(modifier = Modifier.width(16.dp)) // Elegant indent spacing
+                                    
                                     Text(
                                         text = step,
-                                        fontSize = 13.sp,
-                                        color = Color.Black,
-                                        lineHeight = 18.sp,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF1C1C1E),
+                                        lineHeight = 20.sp,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }

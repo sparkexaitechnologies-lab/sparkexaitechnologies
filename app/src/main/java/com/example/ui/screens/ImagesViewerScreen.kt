@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,22 +10,23 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.local.GeneratedImageItem
-import com.example.ui.theme.SparkexGold
 import com.example.ui.viewmodel.SparkexViewModel
 import java.io.File
 
@@ -45,19 +47,22 @@ fun ImagesViewerScreen(
     val sizesList = listOf("1K", "2K", "4K")
 
     Scaffold(
+        containerColor = Color(0xFFF7F7F8), // Soft off-white
         topBar = {
-            TopAppBar(
-                title = { Text("AI Creative Studio", fontWeight = FontWeight.Bold) },
+            CenterAlignedTopAppBar(
+                title = { Text("Creative Studio", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.Black) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            imageVector = Icons.Outlined.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color(0xFFF7F7F8)
                 )
             )
         }
@@ -66,25 +71,66 @@ fun ImagesViewerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(28.dp)) // circular
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Image,
+                        contentDescription = "Creative Studio",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Text(
+                    text = "AI Creative Studio",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    letterSpacing = (-0.5).sp
+                )
+                Text(
+                    text = "Generate high-resolution digital art, illustration canvases, and photorealistic concept renders instantly.",
+                    fontSize = 14.sp,
+                    color = Color(0xFF6E6E73),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+            }
+
             // Creative Generator Box
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                shape = RoundedCornerShape(16.dp)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color(0xFFE5E5EA))
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
                         text = "Generate High-Quality Artwork",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
                     )
 
                     OutlinedTextField(
@@ -94,8 +140,10 @@ fun ImagesViewerScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = SparkexGold,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            focusedBorderColor = Color.Black,
+                            unfocusedBorderColor = Color(0xFFE5E5EA),
+                            focusedLabelColor = Color.Black,
+                            unfocusedLabelColor = Color(0xFF6E6E73)
                         )
                     )
 
@@ -109,17 +157,33 @@ fun ImagesViewerScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Resolution:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "Resolution:", 
+                                fontSize = 11.sp, 
+                                fontWeight = FontWeight.Bold, 
+                                color = Color(0xFF6E6E73)
+                            )
                             sizesList.forEach { size ->
-                                FilterChip(
-                                    selected = selectedSize == size,
-                                    onClick = { selectedSize = size },
-                                    label = { Text(size) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = SparkexGold,
-                                        selectedLabelColor = MaterialTheme.colorScheme.background
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (selectedSize == size) Color.Black else Color(0xFFF7F7F8))
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (selectedSize == size) Color.Black else Color(0xFFE5E5EA),
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .clickable { selectedSize = size }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = size,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (selectedSize == size) Color.White else Color(0xFF6E6E73)
                                     )
-                                )
+                                }
                             }
                         }
 
@@ -134,25 +198,27 @@ fun ImagesViewerScreen(
                             },
                             enabled = !isGeneratingImage && promptText.isNotBlank(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = SparkexGold,
-                                contentColor = MaterialTheme.colorScheme.background
+                                containerColor = Color.Black,
+                                contentColor = Color.White,
+                                disabledContainerColor = Color(0xFFE5E5EA),
+                                disabledContentColor = Color(0xFF6E6E73)
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             if (isGeneratingImage) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    color = MaterialTheme.colorScheme.background,
+                                    modifier = Modifier.size(16.dp),
+                                    color = Color.Black,
                                     strokeWidth = 2.dp
                                 )
                             } else {
                                 Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
+                                    imageVector = Icons.Outlined.AutoAwesome,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Generate")
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Generate", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
                     }
@@ -170,8 +236,9 @@ fun ImagesViewerScreen(
             // Generated Grid Title
             Text(
                 text = "My Digital Creations",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
             )
 
             if (images.isEmpty()) {
@@ -186,20 +253,21 @@ fun ImagesViewerScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Image,
+                            imageVector = Icons.Outlined.Image,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(48.dp)
+                            tint = Color(0xFF6E6E73),
+                            modifier = Modifier.size(44.dp)
                         )
                         Text(
                             text = "No creations found yet.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
                         )
                         Text(
                             text = "Describe an artwork above to start.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 13.sp,
+                            color = Color(0xFF6E6E73)
                         )
                     }
                 }
@@ -208,14 +276,15 @@ fun ImagesViewerScreen(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     items(images) { item ->
                         Box(
                             modifier = Modifier
                                 .aspectRatio(1f)
                                 .clip(RoundedCornerShape(12.dp))
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                                .border(1.dp, Color(0xFFE5E5EA), RoundedCornerShape(12.dp))
                                 .clickable { activeViewItem = item }
                         ) {
                             AsyncImage(
@@ -231,14 +300,14 @@ fun ImagesViewerScreen(
                                     .align(Alignment.TopEnd)
                                     .padding(8.dp)
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                                    .background(Color.Black.copy(alpha = 0.7f))
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
                                     text = item.size,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = Color.White
                                 )
                             }
                         }
@@ -251,9 +320,15 @@ fun ImagesViewerScreen(
         activeViewItem?.let { item ->
             AlertDialog(
                 onDismissRequest = { activeViewItem = null },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(24.dp),
                 confirmButton = {
-                    TextButton(onClick = { activeViewItem = null }) {
-                        Text("Close", color = SparkexGold)
+                    Button(
+                        onClick = { activeViewItem = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Close", fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
@@ -264,9 +339,10 @@ fun ImagesViewerScreen(
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Delete,
+                            imageVector = Icons.Outlined.Delete,
                             contentDescription = "Delete Image",
-                            tint = MaterialTheme.colorScheme.error
+                            tint = Color.Red,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 },
@@ -280,6 +356,7 @@ fun ImagesViewerScreen(
                                 .fillMaxWidth()
                                 .aspectRatio(1f)
                                 .clip(RoundedCornerShape(12.dp))
+                                .border(1.dp, Color(0xFFE5E5EA), RoundedCornerShape(12.dp))
                         ) {
                             AsyncImage(
                                 model = File(item.imagePath),
@@ -291,14 +368,15 @@ fun ImagesViewerScreen(
 
                         Text(
                             text = "Prompt: ${item.prompt}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
                         )
 
                         Text(
                             text = "Resolution: ${item.size} (${if (item.size == "1K") "1024x1024" else if (item.size == "2K") "2048x2048" else "4096x4096"})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 12.sp,
+                            color = Color(0xFF6E6E73)
                         )
                     }
                 }
