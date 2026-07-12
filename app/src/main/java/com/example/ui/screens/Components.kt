@@ -1,4 +1,5 @@
 package com.example.ui.screens
+import androidx.compose.ui.text.withStyle
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -111,78 +112,154 @@ fun MarkdownText(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface
 ) {
-    val lines = remember(text) { text.split("\n") }
+    var inCodeBlock = false
+    var codeContent = ""
+
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        lines.forEach { line ->
+        val lines = text.split("\n")
+        var currentParagraph = StringBuilder()
+
+        val flushParagraph: @Composable () -> Unit = {
+            if (currentParagraph.isNotEmpty()) {
+                Text(
+                    text = parseInlineMarkdown(currentParagraph.toString()),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = color,
+                    lineHeight = 24.sp
+                )
+                currentParagraph.clear()
+            }
+        }
+
+        for (line in lines) {
+            if (line.trim().startsWith("```")) {
+                if (inCodeBlock) {
+                    // end code block
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFF0F4F9))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = codeContent.trimEnd(),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace
+                            ),
+                            color = Color(0xFF1C1C1E)
+                        )
+                    }
+                    inCodeBlock = false
+                    codeContent = ""
+                } else {
+                    flushParagraph()
+                    inCodeBlock = true
+                }
+                continue
+            }
+
+            if (inCodeBlock) {
+                codeContent += line + "\n"
+                continue
+            }
+
             when {
-                // Headers
                 line.startsWith("### ") -> {
+                    flushParagraph()
                     Text(
-                        text = line.removePrefix("### "),
+                        text = parseInlineMarkdown(line.removePrefix("### ").trim()),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = color,
-                        modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
+                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                     )
                 }
                 line.startsWith("## ") -> {
+                    flushParagraph()
                     Text(
-                        text = line.removePrefix("## "),
+                        text = parseInlineMarkdown(line.removePrefix("## ").trim()),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = color,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
                     )
                 }
                 line.startsWith("# ") -> {
+                    flushParagraph()
                     Text(
-                        text = line.removePrefix("# "),
+                        text = parseInlineMarkdown(line.removePrefix("# ").trim()),
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Bold,
                         color = color,
-                        modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
+                        modifier = Modifier.padding(top = 20.dp, bottom = 6.dp)
                     )
                 }
-                // Lists
                 line.trim().startsWith("- ") || line.trim().startsWith("* ") -> {
+                    flushParagraph()
                     Row(
-                        modifier = Modifier.padding(start = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(text = "•", color = color, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            text = line.trim().substring(2),
+                            text = parseInlineMarkdown(line.trim().substring(2).trim()),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = color
+                            color = color,
+                            lineHeight = 24.sp
                         )
                     }
                 }
-                // Numbered lists
                 line.trim().firstOrNull()?.isDigit() == true && line.trim().getOrNull(1) == '.' -> {
-                    Text(
-                        text = line,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = color,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+                    flushParagraph()
+                    Row(
+                        modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = line.trim().take(2),
+                            color = color,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = parseInlineMarkdown(line.trim().substring(2).trim()),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = color,
+                            lineHeight = 24.sp
+                        )
+                    }
                 }
-                // Code blocks
-                line.startsWith("```") -> {
-                    // We skip raw backticks but we style subsequent lines
+                line.isBlank() -> {
+                    flushParagraph()
                 }
-                // Inline backticks or simple blocks
                 else -> {
-                    Text(
-                        text = line,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = color,
-                        lineHeight = 22.sp
-                    )
+                    if (currentParagraph.isNotEmpty()) {
+                        currentParagraph.append(" ")
+                    }
+                    currentParagraph.append(line)
                 }
             }
         }
+        flushParagraph()
+    }
+}
+
+fun parseInlineMarkdown(text: String): androidx.compose.ui.text.AnnotatedString {
+    return androidx.compose.ui.text.buildAnnotatedString {
+        var currentIndex = 0
+        val boldRegex = Regex("\\*\\*(.*?)\\*\\*")
+        val matches = boldRegex.findAll(text)
+        for (match in matches) {
+            append(text.substring(currentIndex, match.range.first))
+            withStyle(style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(match.groupValues[1])
+            }
+            currentIndex = match.range.last + 1
+        }
+        append(text.substring(currentIndex))
     }
 }

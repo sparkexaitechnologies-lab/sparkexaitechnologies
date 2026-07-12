@@ -77,14 +77,14 @@ fun SidebarComponent(
     val groupOrder = listOf("Today", "Yesterday", "Last 7 Days", "Older Conversations")
 
     ModalDrawerSheet(
-        drawerContainerColor = Color.White,
+        drawerContainerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier.width(300.dp),
         drawerShape = RoundedCornerShape(topEnd = 0.dp, bottomEnd = 0.dp) // Flat design
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -110,20 +110,20 @@ fun SidebarComponent(
                         text = profile.name.ifBlank { "Sparkex User" },
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "View Profile & Settings",
                         fontSize = 11.sp,
-                        color = Color(0xFF6E6E73),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            HorizontalDivider(color = Color(0xFFE5E5EA), thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
 
             // Redesigned Pill-shaped New Chat Button with subtle background and border
             OutlinedButton(
@@ -133,10 +133,10 @@ fun SidebarComponent(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color(0xFFF7F7F8), // Subtle background
-                    contentColor = Color.Black
+                    containerColor = MaterialTheme.colorScheme.background, // Subtle background
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 ),
-                border = BorderStroke(1.dp, Color(0xFFE5E5EA)), // Subtle border
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), // Subtle border
                 shape = RoundedCornerShape(50.dp), // Prominent pill/capsule style
                 contentPadding = PaddingValues(vertical = 14.dp)
             ) {
@@ -153,13 +153,13 @@ fun SidebarComponent(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search conversations...", fontSize = 13.sp, color = Color(0xFF6E6E73)) },
+                placeholder = { Text("Search conversations...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Outlined.Search,
                         contentDescription = "Search Icon",
                         modifier = Modifier.size(20.dp),
-                        tint = Color(0xFF6E6E73)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 trailingIcon = {
@@ -172,7 +172,7 @@ fun SidebarComponent(
                                 imageVector = Icons.Outlined.Clear,
                                 contentDescription = "Clear Search",
                                 modifier = Modifier.size(16.dp),
-                                tint = Color(0xFF6E6E73)
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -180,12 +180,12 @@ fun SidebarComponent(
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color(0xFFE5E5EA),
-                    focusedContainerColor = Color(0xFFF7F7F8),
+                    focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedContainerColor = MaterialTheme.colorScheme.background,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -197,7 +197,7 @@ fun SidebarComponent(
             Text(
                 text = "Chat History",
                 style = MaterialTheme.typography.titleSmall,
-                color = Color(0xFF6E6E73),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
             )
@@ -218,7 +218,7 @@ fun SidebarComponent(
                             Text(
                                 text = if (searchQuery.isEmpty()) "No past conversations yet" else "No matches found",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF6E6E73),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 13.sp
                             )
                         }
@@ -231,7 +231,7 @@ fun SidebarComponent(
                                 Text(
                                     text = groupName,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color(0xFF6E6E73),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                                 )
@@ -243,7 +243,7 @@ fun SidebarComponent(
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(
-                                            if (isSelected) Color(0xFFF7F7F8)
+                                            if (isSelected) MaterialTheme.colorScheme.background
                                             else Color.Transparent
                                         )
                                         .clickable {
@@ -252,7 +252,7 @@ fun SidebarComponent(
                                         }
                                         .border(
                                             width = 1.dp,
-                                            color = if (isSelected) Color(0xFFE5E5EA) else Color.Transparent,
+                                            color = if (isSelected) MaterialTheme.colorScheme.outline else Color.Transparent,
                                             shape = RoundedCornerShape(12.dp)
                                         )
                                         .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -268,7 +268,7 @@ fun SidebarComponent(
                                             imageVector = Icons.Outlined.ChatBubbleOutline,
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp),
-                                            tint = if (isSelected) Color.Black else Color(0xFF6E6E73)
+                                            tint = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
                                             text = session.title,
@@ -277,7 +277,7 @@ fun SidebarComponent(
                                             ),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
-                                            color = if (isSelected) Color.Black else Color(0xFF6E6E73)
+                                            color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
 
@@ -289,7 +289,7 @@ fun SidebarComponent(
                                             imageVector = Icons.Outlined.Delete,
                                             contentDescription = "Delete Session",
                                             modifier = Modifier.size(18.dp),
-                                            tint = Color(0xFF6E6E73)
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -299,7 +299,7 @@ fun SidebarComponent(
                 }
             }
 
-            HorizontalDivider(color = Color(0xFFE5E5EA), thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
 
             // Sidebar Footer Navigation Shortcuts with safe system navigation bar padding
             Column(
@@ -348,8 +348,8 @@ fun CircleAvatar(
         modifier = modifier
             .size(44.dp)
             .clip(CircleShape)
-            .background(Color(0xFFF7F7F8))
-            .border(1.dp, Color(0xFFE5E5EA), CircleShape),
+            .background(MaterialTheme.colorScheme.background)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         if (avatarPath != null) {
@@ -364,12 +364,12 @@ fun CircleAvatar(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black),
+                    .background(MaterialTheme.colorScheme.onSurface),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = initial,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surface,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -396,14 +396,14 @@ fun SidebarShortcutItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color(0xFF6E6E73),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
         Text(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

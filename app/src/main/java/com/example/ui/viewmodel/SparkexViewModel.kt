@@ -3,31 +3,34 @@ package com.example.ui.viewmodel
 import android.app.Application
 import android.media.MediaPlayer
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.ChatMessage
-import com.example.data.local.ChatSession
 import com.example.data.local.GeneratedImageItem
 import com.example.data.local.UserProfile
 import com.example.data.repository.SparkexRepository
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.io.File
 
 class SparkexViewModel(
     application: Application,
     private val repository: SparkexRepository
-) : AndroidViewModel(application) {
+) : ViewModel() {
 
     private val tag = "SparkexViewModel"
 
-    // Observed collections
-    val sessions: StateFlow<List<ChatSession>> = repository.allSessions
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val generatedImages: StateFlow<List<GeneratedImageItem>> = repository.allGeneratedImages
+    val sessions = repository.allSessions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val generatedImages = repository.allGeneratedImages
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val userProfile: StateFlow<UserProfile> = repository.userProfileFlow
@@ -37,6 +40,11 @@ class SparkexViewModel(
     // Active session state
     private val _activeSessionId = MutableStateFlow<String?>(null)
     val activeSessionId: StateFlow<String?> = _activeSessionId.asStateFlow()
+
+    private val _currentStreamingMessage = MutableStateFlow<ChatMessage?>(null)
+    val currentStreamingMessage: StateFlow<ChatMessage?> = _currentStreamingMessage.asStateFlow()
+    
+    private var generatingJob: Job? = null
 
     // UI States
     private val _isGenerating = MutableStateFlow(false)
@@ -97,6 +105,17 @@ class SparkexViewModel(
         }
     }
 
+    fun stopGenerating() {
+        generatingJob?.cancel()
+        _isGenerating.value = false
+        _currentStreamingMessage.value?.let { msg ->
+            viewModelScope.launch {
+                repository.addMessage(msg)
+                _currentStreamingMessage.value = null
+            }
+        }
+    }
+
     fun deleteGeneratedImage(item: GeneratedImageItem) {
         viewModelScope.launch {
             repository.deleteGeneratedImage(item.id, item.imagePath)
@@ -116,12 +135,12 @@ class SparkexViewModel(
     }
 
     fun startNewSessionWithPrompt(title: String, prompt: String) {
-        viewModelScope.launch {
+        generatingJob = viewModelScope.launch {
             val model = userProfile.value.preferredModel
             val session = repository.createNewSession(title, model)
             _activeSessionId.value = session.id
-
             _isGenerating.value = true
+
             val result = repository.sendChatMessage(
                 sessionId = session.id,
                 userPrompt = prompt,
@@ -131,14 +150,31 @@ class SparkexViewModel(
                 thinkingEnabled = _deepResearchEnabled.value,
                 ttsEnabled = _ttsEnabled.value
             )
-            _isGenerating.value = false
 
-            if (result.isSuccess && _ttsEnabled.value) {
-                val lastMsg = activeMessages.value.lastOrNull { it.role == "model" }
-                if (lastMsg != null && lastMsg.isAudioResponse && lastMsg.voicePath != null) {
-                    playMessageVoice(lastMsg)
+            if (result.isSuccess) {
+                val fullMessage = result.getOrThrow()
+                
+                // Simulate typing
+                val streamMsg = fullMessage.copy(text = "")
+                _currentStreamingMessage.value = streamMsg
+                
+                var currentText = ""
+                val words = fullMessage.text.split(Regex("(?<=\\\\s)"))
+                for (word in words) {
+                    kotlinx.coroutines.delay(20)
+                    currentText += word
+                    _currentStreamingMessage.value = streamMsg.copy(text = currentText)
+                }
+                _currentStreamingMessage.value = streamMsg.copy(text = fullMessage.text)
+                
+                repository.addMessage(_currentStreamingMessage.value!!)
+                _currentStreamingMessage.value = null
+                
+                if (_ttsEnabled.value && fullMessage.isAudioResponse && fullMessage.voicePath != null) {
+                    playMessageVoice(fullMessage)
                 }
             }
+            _isGenerating.value = false
         }
     }
 
@@ -148,7 +184,7 @@ class SparkexViewModel(
         attachedVoicePath: String? = null
     ) {
         val currentSessionId = _activeSessionId.value
-        viewModelScope.launch {
+        generatingJob = viewModelScope.launch {
             val sessionId = if (currentSessionId.isNullOrEmpty()) {
                 val title = if (text.length > 20) text.take(20) + "..." else text
                 val session = repository.createNewSession(title, userProfile.value.preferredModel)
@@ -157,8 +193,8 @@ class SparkexViewModel(
             } else {
                 currentSessionId
             }
-
             _isGenerating.value = true
+
             val result = repository.sendChatMessage(
                 sessionId = sessionId,
                 userPrompt = text,
@@ -168,15 +204,31 @@ class SparkexViewModel(
                 thinkingEnabled = _deepResearchEnabled.value,
                 ttsEnabled = _ttsEnabled.value
             )
-            _isGenerating.value = false
 
-            if (result.isSuccess && _ttsEnabled.value) {
-                // Auto-play TTS if audio voice data was fetched
-                val lastMsg = activeMessages.value.lastOrNull { it.role == "model" }
-                if (lastMsg != null && lastMsg.isAudioResponse && lastMsg.voicePath != null) {
-                    playMessageVoice(lastMsg)
+            if (result.isSuccess) {
+                val fullMessage = result.getOrThrow()
+                
+                // Simulate typing
+                val streamMsg = fullMessage.copy(text = "")
+                _currentStreamingMessage.value = streamMsg
+                
+                var currentText = ""
+                val words = fullMessage.text.split(Regex("(?<=\\\\s)"))
+                for (word in words) {
+                    kotlinx.coroutines.delay(20)
+                    currentText += word
+                    _currentStreamingMessage.value = streamMsg.copy(text = currentText)
+                }
+                _currentStreamingMessage.value = streamMsg.copy(text = fullMessage.text)
+                
+                repository.addMessage(_currentStreamingMessage.value!!)
+                _currentStreamingMessage.value = null
+                
+                if (_ttsEnabled.value && fullMessage.isAudioResponse && fullMessage.voicePath != null) {
+                    playMessageVoice(fullMessage)
                 }
             }
+            _isGenerating.value = false
         }
     }
 

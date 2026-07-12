@@ -43,22 +43,22 @@ fun MembershipsScreen(
     var selectedPlanForSuccess by remember { mutableStateOf("") }
 
     Scaffold(
-        containerColor = Color(0xFFF7F7F8), // Soft off-white
+        containerColor = MaterialTheme.colorScheme.background, // Soft off-white
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("AI Plans", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.Black) },
+                title = { Text("AI Plans", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.Black,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFFF7F7F8)
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -88,13 +88,13 @@ fun MembershipsScreen(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(Color.Black),
+                                .background(MaterialTheme.colorScheme.onSurface),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.AutoAwesome,
                                 contentDescription = "AI Plans",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.surface,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -103,14 +103,14 @@ fun MembershipsScreen(
                             text = "Elevate Your Workspace",
                             fontSize = 24.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center,
                             letterSpacing = (-0.5).sp
                         )
                         Text(
                             text = "Choose a processing speed and model capacity level designed to optimize your professional workflow.",
                             fontSize = 14.sp,
-                            color = Color(0xFF6E6E73),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             lineHeight = 22.sp,
                             modifier = Modifier.padding(horizontal = 16.dp)
@@ -123,9 +123,9 @@ fun MembershipsScreen(
                     val currentPlan = profile.subscriptionType
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Row(
                             modifier = Modifier
@@ -139,7 +139,7 @@ fun MembershipsScreen(
                                     text = "CURRENT PLAN",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF6E6E73)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
@@ -150,21 +150,21 @@ fun MembershipsScreen(
                                     },
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.Black
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
 
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.Black)
+                                    .background(MaterialTheme.colorScheme.onSurface)
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text(
                                     text = "ACTIVE",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.surface
                                 )
                             }
                         }
@@ -253,7 +253,7 @@ fun MembershipsScreen(
                             Text(
                                 text = "Restore Purchases",
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 14.sp
                             )
                         }
@@ -262,7 +262,7 @@ fun MembershipsScreen(
                             text = "Subscriptions automatically renew monthly unless canceled in account settings. Billing handled securely through native platform services.",
                             fontFamily = FontFamily.SansSerif,
                             fontSize = 11.sp,
-                            color = Color(0xFF8E8E93).copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center,
                             lineHeight = 16.sp,
                             modifier = Modifier.padding(horizontal = 24.dp)
@@ -281,7 +281,7 @@ fun MembershipsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         .clickable { showSuccessAnimation = false },
                     contentAlignment = Alignment.Center
                 ) {
@@ -289,9 +289,9 @@ fun MembershipsScreen(
                         modifier = Modifier
                             .width(300.dp)
                             .padding(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(24.dp),
-                        border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Column(
                             modifier = Modifier.padding(24.dp),
@@ -301,7 +301,7 @@ fun MembershipsScreen(
                             Icon(
                                 imageVector = Icons.Outlined.CheckCircle,
                                 contentDescription = "Success",
-                                tint = Color.Black,
+                                tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(56.dp)
                             )
 
@@ -309,14 +309,14 @@ fun MembershipsScreen(
                                 text = "Welcome to $selectedPlanForSuccess",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center
                             )
 
                             Text(
                                 text = "Your account has successfully upgraded. All pro tier benefits are now active.",
                                 fontSize = 13.sp,
-                                color = Color(0xFF6E6E73),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
                                 lineHeight = 18.sp
                             )
@@ -324,7 +324,7 @@ fun MembershipsScreen(
                             Button(
                                 onClick = { showSuccessAnimation = false },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSurface, contentColor = MaterialTheme.colorScheme.surface),
                                 shape = RoundedCornerShape(50.dp)
                             ) {
                                 Text("Let's Go", fontWeight = FontWeight.Bold)
@@ -349,7 +349,7 @@ fun PlanSelectionCard(
     val accentColor = when (title) {
         "Pro" -> Color(0xFF6366F1) // Indigo accent
         "Pro Plus" -> Color(0xFFF59E0B) // Amber/Gold accent
-        else -> Color(0xFF6E6E73) // Cool Gray
+        else -> MaterialTheme.colorScheme.onSurfaceVariant // Cool Gray
     }
 
     val badgeText = when (title) {
@@ -368,14 +368,14 @@ fun PlanSelectionCard(
     } else {
         BorderStroke(
             width = if (isActive) 2.dp else 1.dp,
-            color = if (isActive) accentColor else Color(0xFFE5E5EA)
+            color = if (isActive) accentColor else MaterialTheme.colorScheme.outline
         )
     }
 
     val cardBgColor = if (isProPlus) {
         Color(0xFFFFFDF9) // Distinct subtle warm/gold premium background fill
     } else {
-        Color.White
+        MaterialTheme.colorScheme.surface
     }
 
     Card(
@@ -424,13 +424,13 @@ fun PlanSelectionCard(
                         text = title,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = price,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -444,7 +444,7 @@ fun PlanSelectionCard(
                         Icon(
                             imageVector = Icons.Outlined.Check,
                             contentDescription = "Active Plan",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.surface,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -469,7 +469,7 @@ fun PlanSelectionCard(
                         Text(
                             text = benefit,
                             fontSize = 13.sp,
-                            color = Color(0xFF1C1C1E),
+                            color = MaterialTheme.colorScheme.onSurface,
                             lineHeight = 18.sp
                         )
                     }
@@ -483,7 +483,7 @@ fun PlanSelectionCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isActive) Color(0xFFF2F2F7) else if (isProPlus) Color(0xFFD97706) else accentColor,
-                    contentColor = if (isActive) Color(0xFF8E8E93) else Color.White
+                    contentColor = if (isActive) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.surface
                 ),
                 shape = RoundedCornerShape(50.dp), // Premium, pill-shaped fully rounded corners
                 contentPadding = PaddingValues(vertical = 12.dp)

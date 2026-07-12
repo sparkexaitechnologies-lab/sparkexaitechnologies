@@ -39,6 +39,17 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.updateNotificationsEnabled(true)
+            com.example.util.NotificationHelper.sendTestNotification(context)
+        } else {
+            viewModel.updateNotificationsEnabled(false)
+        }
+    }
+
     val profile by viewModel.userProfile.collectAsState()
     val isGeneratingImage by viewModel.isGeneratingImage.collectAsState()
 
@@ -61,22 +72,22 @@ fun SettingsScreen(
     }
 
     Scaffold(
-        containerColor = Color(0xFFF7F7F8), // Soft off-white
+        containerColor = MaterialTheme.colorScheme.background, // Soft off-white
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.Black) },
+                title = { Text("Settings", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.Black,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFFF7F7F8)
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -93,9 +104,9 @@ fun SettingsScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Row(
                         modifier = Modifier
@@ -108,8 +119,8 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF7F7F8))
-                                .border(1.dp, Color(0xFFE5E5EA), CircleShape)
+                                .background(MaterialTheme.colorScheme.background)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                                 .clickable { showAvatarGenerator = true },
                             contentAlignment = Alignment.Center
                         ) {
@@ -125,7 +136,7 @@ fun SettingsScreen(
                                     imageVector = Icons.Outlined.Person,
                                     contentDescription = "Avatar",
                                     modifier = Modifier.size(28.dp),
-                                    tint = Color.Black
+                                    tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -135,13 +146,13 @@ fun SettingsScreen(
                                 text = profile.name,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
-                                color = Color.Black
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = profile.email,
                                 fontSize = 13.sp,
-                                color = Color(0xFF6E6E73)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -149,13 +160,13 @@ fun SettingsScreen(
                             onClick = { showEditDialog = true },
                             modifier = Modifier
                                 .size(36.dp)
-                                .border(1.dp, Color(0xFFE5E5EA), CircleShape)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Edit,
                                 contentDescription = "Edit Profile",
                                 modifier = Modifier.size(18.dp),
-                                tint = Color.Black
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -167,9 +178,9 @@ fun SettingsScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -179,7 +190,7 @@ fun SettingsScreen(
                                 text = "Create AI Portrait Avatar",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
-                                color = Color.Black
+                                color = MaterialTheme.colorScheme.onSurface
                             )
 
                             OutlinedTextField(
@@ -189,10 +200,10 @@ fun SettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color.Black,
-                                    unfocusedBorderColor = Color(0xFFE5E5EA),
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
+                                    focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
 
@@ -201,7 +212,7 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.End
                             ) {
                                 TextButton(onClick = { showAvatarGenerator = false }) {
-                                    Text("Dismiss", color = Color(0xFF6E6E73))
+                                    Text("Dismiss", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Button(
@@ -215,13 +226,13 @@ fun SettingsScreen(
                                     },
                                     enabled = !isGeneratingImage && avatarPrompt.isNotBlank(),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.Black,
-                                        contentColor = Color.White
+                                        containerColor = MaterialTheme.colorScheme.onSurface,
+                                        contentColor = MaterialTheme.colorScheme.surface
                                     ),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     if (isGeneratingImage) {
-                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.surface, strokeWidth = 2.dp)
                                     } else {
                                         Text("Generate", fontWeight = FontWeight.Bold)
                                     }
@@ -236,9 +247,9 @@ fun SettingsScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Column {
                         // 1. Appearance
@@ -252,7 +263,7 @@ fun SettingsScreen(
                             },
                             onClick = { showAppearanceDialog = true }
                         )
-                        HorizontalDivider(color = Color(0xFFF7F7F8), thickness = 1.dp)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.background, thickness = 1.dp)
 
                         // 2. AI Plan
                         SettingsListItem(
@@ -265,7 +276,7 @@ fun SettingsScreen(
                             },
                             onClick = { showAIPlanDialog = true }
                         )
-                        HorizontalDivider(color = Color(0xFFF7F7F8), thickness = 1.dp)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.background, thickness = 1.dp)
 
                         // 3. Language
                         SettingsListItem(
@@ -274,13 +285,23 @@ fun SettingsScreen(
                             subtitle = profile.selectedLanguage,
                             onClick = { showLanguageDialog = true }
                         )
-                        HorizontalDivider(color = Color(0xFFF7F7F8), thickness = 1.dp)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.background, thickness = 1.dp)
 
                         // 4. Notifications (Inline Toggle Switch)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { viewModel.updateNotificationsEnabled(!profile.notificationsEnabled) }
+                                .clickable {
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU && !profile.notificationsEnabled) {
+                                        permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        val newState = !profile.notificationsEnabled
+                                        viewModel.updateNotificationsEnabled(newState)
+                                        if (newState) {
+                                            com.example.util.NotificationHelper.sendTestNotification(context)
+                                        }
+                                    }
+                                }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -293,7 +314,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Notifications,
                                     contentDescription = null,
-                                    tint = Color.Black,
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Column {
@@ -301,27 +322,36 @@ fun SettingsScreen(
                                         text = "Notifications",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
-                                        color = Color.Black
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = if (profile.notificationsEnabled) "System alerts enabled" else "System alerts disabled",
                                         fontSize = 12.sp,
-                                        color = Color(0xFF6E6E73)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
                             Switch(
                                 checked = profile.notificationsEnabled,
-                                onCheckedChange = { viewModel.updateNotificationsEnabled(it) },
+                                onCheckedChange = { 
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU && it) {
+                                        permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        viewModel.updateNotificationsEnabled(it)
+                                        if (it) {
+                                            com.example.util.NotificationHelper.sendTestNotification(context)
+                                        }
+                                    }
+                                },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = Color.Black,
-                                    uncheckedThumbColor = Color(0xFF6E6E73),
-                                    uncheckedTrackColor = Color(0xFFF7F7F8)
+                                    checkedThumbColor = MaterialTheme.colorScheme.surface,
+                                    checkedTrackColor = MaterialTheme.colorScheme.onSurface,
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.background
                                 )
                             )
                         }
-                        HorizontalDivider(color = Color(0xFFF7F7F8), thickness = 1.dp)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.background, thickness = 1.dp)
 
                         // 5. Privacy
                         SettingsListItem(
@@ -330,7 +360,7 @@ fun SettingsScreen(
                             subtitle = "Read local security guidelines & terms",
                             onClick = onNavigateToPrivacy
                         )
-                        HorizontalDivider(color = Color(0xFFF7F7F8), thickness = 1.dp)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.background, thickness = 1.dp)
 
                         // 6. About
                         SettingsListItem(
@@ -354,7 +384,7 @@ fun SettingsScreen(
                     Text(
                         text = "Sparkex Technologies © 2026",
                         fontSize = 11.sp,
-                        color = Color(0xFF6E6E73),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -370,7 +400,7 @@ fun SettingsScreen(
     if (showEditDialog) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
-            title = { Text("Edit Profile Info", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black) },
+            title = { Text("Edit Profile Info", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
@@ -380,10 +410,10 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Black,
-                            unfocusedBorderColor = Color(0xFFE5E5EA),
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black
+                            focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         )
                     )
 
@@ -394,10 +424,10 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Black,
-                            unfocusedBorderColor = Color(0xFFE5E5EA),
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black
+                            focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         )
                     )
                 }
@@ -411,7 +441,7 @@ fun SettingsScreen(
                             Toast.makeText(context, "Profile info updated.", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSurface, contentColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Save", fontWeight = FontWeight.Bold)
@@ -419,10 +449,10 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showEditDialog = false }) {
-                    Text("Cancel", color = Color(0xFF6E6E73))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -430,7 +460,7 @@ fun SettingsScreen(
     if (showAppearanceDialog) {
         AlertDialog(
             onDismissRequest = { showAppearanceDialog = false },
-            title = { Text("Choose Appearance", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black) },
+            title = { Text("Choose Appearance", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
@@ -450,14 +480,14 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = name, color = Color.Black, fontSize = 14.sp)
+                            Text(text = name, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                             RadioButton(
                                 selected = profile.themeMode == mode,
                                 onClick = {
                                     viewModel.updateThemeMode(mode)
                                     showAppearanceDialog = false
                                 },
-                                colors = RadioButtonDefaults.colors(selectedColor = Color.Black)
+                                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.onSurface)
                             )
                         }
                     }
@@ -466,10 +496,10 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showAppearanceDialog = false }) {
-                    Text("Cancel", color = Color(0xFF6E6E73))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -477,7 +507,7 @@ fun SettingsScreen(
     if (showAIPlanDialog) {
         AlertDialog(
             onDismissRequest = { showAIPlanDialog = false },
-            title = { Text("Select AI Model Plan", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black) },
+            title = { Text("Select AI Model Plan", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
@@ -498,7 +528,7 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = name, color = Color.Black, fontSize = 14.sp)
+                            Text(text = name, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                             RadioButton(
                                 selected = profile.subscriptionType == plan,
                                 onClick = {
@@ -506,7 +536,7 @@ fun SettingsScreen(
                                     showAIPlanDialog = false
                                     Toast.makeText(context, "Switched plan to $plan", Toast.LENGTH_SHORT).show()
                                 },
-                                colors = RadioButtonDefaults.colors(selectedColor = Color.Black)
+                                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.onSurface)
                             )
                         }
                     }
@@ -515,10 +545,10 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showAIPlanDialog = false }) {
-                    Text("Cancel", color = Color(0xFF6E6E73))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -526,7 +556,7 @@ fun SettingsScreen(
     if (showLanguageDialog) {
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
-            title = { Text("Choose Language", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black) },
+            title = { Text("Choose Language", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("English", "Telugu", "Hindi").forEach { lang ->
@@ -543,7 +573,7 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = lang, color = Color.Black, fontSize = 14.sp)
+                            Text(text = lang, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                             RadioButton(
                                 selected = profile.selectedLanguage == lang,
                                 onClick = {
@@ -551,7 +581,7 @@ fun SettingsScreen(
                                     showLanguageDialog = false
                                     Toast.makeText(context, "Language set to $lang", Toast.LENGTH_SHORT).show()
                                 },
-                                colors = RadioButtonDefaults.colors(selectedColor = Color.Black)
+                                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.onSurface)
                             )
                         }
                     }
@@ -560,10 +590,10 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showLanguageDialog = false }) {
-                    Text("Cancel", color = Color(0xFF6E6E73))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -571,19 +601,19 @@ fun SettingsScreen(
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
-            title = { Text("About Sparkex AI", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black) },
+            title = { Text("About Sparkex AI", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = "Sparkex AI is a world-class professional AI assistant built for productivity and pristine reading spaces.",
                         fontSize = 13.sp,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         lineHeight = 18.sp
                     )
                     Text(
                         text = "Version: 1.2.0 (Stable release)\nEngine: Gemini Multimodal Networks\nDesign Foundation: Premium Slate Off-white",
                         fontSize = 12.sp,
-                        color = Color(0xFF6E6E73),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 18.sp
                     )
                 }
@@ -591,13 +621,13 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = { showAboutDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSurface, contentColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("OK", fontWeight = FontWeight.Bold)
                 }
             },
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }
@@ -625,7 +655,7 @@ fun SettingsListItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.Black,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(20.dp) // Standard sized icon
             )
             Column {
@@ -633,19 +663,19 @@ fun SettingsListItem(
                     text = title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
                     fontSize = 12.sp,
-                    color = Color(0xFF6E6E73)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
         Icon(
             imageVector = Icons.Outlined.ChevronRight,
             contentDescription = null,
-            tint = Color(0xFF6E6E73),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(16.dp)
         )
     }

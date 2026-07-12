@@ -92,7 +92,7 @@ class SparkexRepository(
         modelToUse: String? = null,
         thinkingEnabled: Boolean = false,
         ttsEnabled: Boolean = false
-    ): Result<String> = withContext(Dispatchers.IO) {
+    ): Result<ChatMessage> = withContext(Dispatchers.IO) {
         try {
             val apiKey = BuildConfig.GEMINI_API_KEY
             if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
@@ -151,7 +151,15 @@ class SparkexRepository(
             }
 
             val session = chatSessionDao.getAllSessions() // We could fetch session-specific system instruction if needed
-            val systemInstructionContent = Content(parts = listOf(Part(text = "You are Sparkex AI, a premium, luxury-styled AI assistant. Your responses must be concise, helpful, and highly clear.")))
+            val systemInstructionText = """You are Sparkex AI, an elite personal executive assistant. Your task is to generate a highly professional, clean, and structured "Daily Rundown" or morning briefing for the user based on their provided data (reminders, tasks).
+
+Follow this strict layout format:
+1. Greeting: Start with "Hi [User's Name], here's your daily rundown 🤸"
+2. Top of Mind Section: Highlight the most urgent task or financial action due today. Use a clean bullet point, bold the key numbers/actions, and add relevant action links or sub-notes if available.
+
+Tone Guidelines: Use absolute distinction, refined vocabulary, and keep it distraction-free. Avoid markdown clutter like unnecessary triple asterisks; stick to clean Material 3 design-friendly structuring."""
+
+            val systemInstructionContent = Content(parts = listOf(Part(text = systemInstructionText)))
 
             val request = GenerateContentRequest(
                 contents = contents,
@@ -186,9 +194,9 @@ class SparkexRepository(
                 isAudioResponse = savedVoicePath != null,
                 modelUsed = targetModel
             )
-            chatMessageDao.insertMessage(aiMessage)
+            // chatMessageDao.insertMessage(aiMessage)
 
-            Result.success(textReply)
+            Result.success(aiMessage)
         } catch (e: Exception) {
             Log.e(tag, "Error in sendChatMessage", e)
             Result.failure(e)
