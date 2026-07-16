@@ -1,5 +1,7 @@
 package com.example.ui.viewmodel
 
+import android.speech.tts.TextToSpeech
+import java.util.Locale
 import android.app.Application
 import android.media.MediaPlayer
 import android.util.Log
@@ -28,6 +30,14 @@ class SparkexViewModel(
 ) : ViewModel() {
 
     private val tag = "SparkexViewModel"
+
+    private val prefs = application.getSharedPreferences("sparkex_prefs", android.content.Context.MODE_PRIVATE)
+    private val _pinnedSessionIds = MutableStateFlow<Set<String>>(emptySet())
+    val pinnedSessionIds: StateFlow<Set<String>> = _pinnedSessionIds.asStateFlow()
+
+    private var textToSpeech: TextToSpeech? = null
+    private val _isSpeakingTts = MutableStateFlow<Long?>(null)
+    val isSpeakingTts: StateFlow<Long?> = _isSpeakingTts.asStateFlow()
 
     val sessions = repository.allSessions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val generatedImages = repository.allGeneratedImages
@@ -82,6 +92,27 @@ class SparkexViewModel(
         viewModelScope.launch {
             repository.getOrCreateProfile()
         }
+        val savedPins = prefs.getStringSet("pinned_session_ids", emptySet()) ?: emptySet()
+        _pinnedSessionIds.value = savedPins
+
+        textToSpeech = TextToSpeech(application) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                textToSpeech?.language = Locale.getDefault()
+            } else {
+                Log.e(tag, "Failed to initialize TextToSpeech")
+            }
+        }
+    }
+
+    fun togglePinSession(sessionId: String) {
+        val current = _pinnedSessionIds.value.toMutableSet()
+        if (current.contains(sessionId)) {
+            current.remove(sessionId)
+        } else {
+            current.add(sessionId)
+        }
+        _pinnedSessionIds.value = current
+        prefs.edit().putStringSet("pinned_session_ids", current).apply()
     }
 
     fun selectSession(sessionId: String?) {
@@ -105,6 +136,16 @@ class SparkexViewModel(
         }
     }
 
+    fun renameSession(sessionId: String, newTitle: String) {
+        viewModelScope.launch {
+            val sessionList = sessions.value
+            val session = sessionList.find { it.id == sessionId }
+            if (session != null) {
+                repository.updateSession(session.copy(title = newTitle))
+            }
+        }
+    }
+
     fun stopGenerating() {
         generatingJob?.cancel()
         _isGenerating.value = false
@@ -119,6 +160,12 @@ class SparkexViewModel(
     fun deleteGeneratedImage(item: GeneratedImageItem) {
         viewModelScope.launch {
             repository.deleteGeneratedImage(item.id, item.imagePath)
+        }
+    }
+
+    fun deleteMessageById(id: Long) {
+        viewModelScope.launch {
+            repository.deleteMessageById(id)
         }
     }
 
@@ -141,38 +188,43 @@ class SparkexViewModel(
             _activeSessionId.value = session.id
             _isGenerating.value = true
 
-            val result = repository.sendChatMessage(
+            var currentText = ""
+            val result = repository.sendChatMessageStream(
                 sessionId = session.id,
                 userPrompt = prompt,
                 attachedImagePath = null,
                 attachedVoicePath = null,
                 modelToUse = model,
                 thinkingEnabled = _deepResearchEnabled.value,
-                ttsEnabled = _ttsEnabled.value
+                ttsEnabled = _ttsEnabled.value,
+                onChunkReceived = { chunk ->
+                    currentText += chunk
+                    val placeholderMsg = com.example.data.local.ChatMessage(
+                        id = -1L,
+                        sessionId = session.id,
+                        role = "model",
+                        text = currentText,
+                        modelUsed = model
+                    )
+                    _currentStreamingMessage.value = placeholderMsg
+                }
             )
+
+            _currentStreamingMessage.value = null
 
             if (result.isSuccess) {
                 val fullMessage = result.getOrThrow()
-                
-                // Simulate typing
-                val streamMsg = fullMessage.copy(text = "")
-                _currentStreamingMessage.value = streamMsg
-                
-                var currentText = ""
-                val words = fullMessage.text.split(Regex("(?<=\\\\s)"))
-                for (word in words) {
-                    kotlinx.coroutines.delay(20)
-                    currentText += word
-                    _currentStreamingMessage.value = streamMsg.copy(text = currentText)
+                if (_ttsEnabled.value) {
+                    toggleTtsSpeaking(fullMessage)
                 }
-                _currentStreamingMessage.value = streamMsg.copy(text = fullMessage.text)
-                
-                repository.addMessage(_currentStreamingMessage.value!!)
-                _currentStreamingMessage.value = null
-                
-                if (_ttsEnabled.value && fullMessage.isAudioResponse && fullMessage.voicePath != null) {
-                    playMessageVoice(fullMessage)
-                }
+            } else {
+                val errorMsg = result.exceptionOrNull()?.message ?: "An unknown error occurred"
+                val errorChatMessage = com.example.data.local.ChatMessage(
+                    sessionId = session.id,
+                    role = "model",
+                    text = "Error: $errorMsg"
+                )
+                repository.addMessage(errorChatMessage)
             }
             _isGenerating.value = false
         }
@@ -195,38 +247,44 @@ class SparkexViewModel(
             }
             _isGenerating.value = true
 
-            val result = repository.sendChatMessage(
+            var currentText = ""
+            val model = userProfile.value.preferredModel
+            val result = repository.sendChatMessageStream(
                 sessionId = sessionId,
                 userPrompt = text,
                 attachedImagePath = attachedImagePath,
                 attachedVoicePath = attachedVoicePath,
-                modelToUse = userProfile.value.preferredModel,
+                modelToUse = model,
                 thinkingEnabled = _deepResearchEnabled.value,
-                ttsEnabled = _ttsEnabled.value
+                ttsEnabled = _ttsEnabled.value,
+                onChunkReceived = { chunk ->
+                    currentText += chunk
+                    val placeholderMsg = com.example.data.local.ChatMessage(
+                        id = -1L,
+                        sessionId = sessionId,
+                        role = "model",
+                        text = currentText,
+                        modelUsed = model
+                    )
+                    _currentStreamingMessage.value = placeholderMsg
+                }
             )
+
+            _currentStreamingMessage.value = null
 
             if (result.isSuccess) {
                 val fullMessage = result.getOrThrow()
-                
-                // Simulate typing
-                val streamMsg = fullMessage.copy(text = "")
-                _currentStreamingMessage.value = streamMsg
-                
-                var currentText = ""
-                val words = fullMessage.text.split(Regex("(?<=\\\\s)"))
-                for (word in words) {
-                    kotlinx.coroutines.delay(20)
-                    currentText += word
-                    _currentStreamingMessage.value = streamMsg.copy(text = currentText)
+                if (_ttsEnabled.value) {
+                    toggleTtsSpeaking(fullMessage)
                 }
-                _currentStreamingMessage.value = streamMsg.copy(text = fullMessage.text)
-                
-                repository.addMessage(_currentStreamingMessage.value!!)
-                _currentStreamingMessage.value = null
-                
-                if (_ttsEnabled.value && fullMessage.isAudioResponse && fullMessage.voicePath != null) {
-                    playMessageVoice(fullMessage)
-                }
+            } else {
+                val errorMsg = result.exceptionOrNull()?.message ?: "An unknown error occurred"
+                val errorChatMessage = com.example.data.local.ChatMessage(
+                    sessionId = sessionId,
+                    role = "model",
+                    text = "Error: $errorMsg"
+                )
+                repository.addMessage(errorChatMessage)
             }
             _isGenerating.value = false
         }
@@ -277,7 +335,7 @@ class SparkexViewModel(
             val model = when (normalizedType) {
                 "Pro Plus" -> "gemini-3.1-pro-preview"
                 "Pro" -> "gemini-3.5-flash"
-                else -> "gemini-3.1-flash-lite"
+                else -> "gemini-3.1-flash-lite-preview"
             }
             val updated = userProfile.value.copy(subscriptionType = normalizedType, preferredModel = model)
             repository.updateProfile(updated)
@@ -335,6 +393,7 @@ class SparkexViewModel(
         val path = message.voicePath ?: return
         try {
             stopVoicePlayback()
+            stopTtsSpeaking()
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(path)
                 prepare()
@@ -348,6 +407,67 @@ class SparkexViewModel(
         } catch (e: Exception) {
             Log.e(tag, "Failed to play voice message", e)
             _currentlyPlayingMessageId.value = null
+        }
+    }
+
+    fun toggleTtsSpeaking(message: ChatMessage) {
+        if (_isSpeakingTts.value == message.id) {
+            stopTtsSpeaking()
+        } else {
+            stopVoicePlayback()
+            stopTtsSpeaking()
+            
+            _isSpeakingTts.value = message.id
+            
+            // Clean text from custom markdown blocks/JSON requests before speaking
+            val fullText = message.text
+            val imageRequestMatch = Regex("\\[IMAGE_REQUEST: (.*?)\\]").find(fullText)
+            val mapRequestMatch = Regex("\\[MAP_REQUEST: (.*?)\\]").find(fullText)
+            val cardRequestMatch = Regex("\\[CARD_REQUEST: (.*?)\\]").find(fullText)
+            var cleanText = fullText
+            imageRequestMatch?.let { cleanText = cleanText.replace(it.value, "") }
+            mapRequestMatch?.let { cleanText = cleanText.replace(it.value, "") }
+            cardRequestMatch?.let { cleanText = cleanText.replace(it.value, "") }
+            cleanText = cleanText.trim()
+
+            if (cleanText.isNotEmpty()) {
+                val params = android.os.Bundle().apply {
+                    putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, message.id.toString())
+                }
+                textToSpeech?.speak(cleanText, TextToSpeech.QUEUE_FLUSH, params, message.id.toString())
+                
+                textToSpeech?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                    override fun onStart(utteranceId: String?) {}
+                    override fun onDone(utteranceId: String?) {
+                        if (utteranceId == message.id.toString()) {
+                            _isSpeakingTts.value = null
+                        }
+                    }
+                    @Deprecated("Deprecated in Java")
+                    override fun onError(utteranceId: String?) {
+                        if (utteranceId == message.id.toString()) {
+                            _isSpeakingTts.value = null
+                        }
+                    }
+                    override fun onError(utteranceId: String?, errorCode: Int) {
+                        if (utteranceId == message.id.toString()) {
+                            _isSpeakingTts.value = null
+                        }
+                    }
+                })
+            } else {
+                _isSpeakingTts.value = null
+            }
+        }
+    }
+
+    fun stopTtsSpeaking() {
+        try {
+            textToSpeech?.stop()
+        } catch (e: Exception) {
+            Log.e(tag, "Error stopping TTS", e)
+        } finally {
+            _isSpeakingTts.value = null
         }
     }
 
@@ -365,11 +485,17 @@ class SparkexViewModel(
             mediaPlayer = null
             _currentlyPlayingMessageId.value = null
         }
+        stopTtsSpeaking()
     }
 
     override fun onCleared() {
         super.onCleared()
         stopVoicePlayback()
+        try {
+            textToSpeech?.shutdown()
+        } catch (e: Exception) {
+            Log.e(tag, "Error shutting down TTS", e)
+        }
     }
 }
 

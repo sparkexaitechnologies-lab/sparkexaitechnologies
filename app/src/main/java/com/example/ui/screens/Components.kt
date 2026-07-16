@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -20,44 +22,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.SilverAccent
-import com.example.ui.theme.SparkexGold
+import com.example.ui.theme.BW_Silver
 
 @Composable
-fun GlowBorderContainer(
+fun PremiumContainer(
     modifier: Modifier = Modifier,
     borderWidth: Dp = 1.dp,
-    shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+    shape: RoundedCornerShape = RoundedCornerShape(18.dp),
     content: @Composable BoxScope.() -> Unit
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "borderGlow")
-    val animProgress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "borderOffset"
-    )
-
-    val goldColor = SparkexGold
-    val glowBrush = remember(animProgress, goldColor) {
-        Brush.sweepGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.1f),
-                Color.White.copy(alpha = 0.9f),
-                Color.White.copy(alpha = 0.1f),
-                goldColor.copy(alpha = 0.8f),
-                Color.White.copy(alpha = 0.1f)
-            )
-        )
-    }
-
     Box(
         modifier = modifier
             .clip(shape)
-            .border(borderWidth, glowBrush, shape)
+            .border(borderWidth, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), shape)
             .background(MaterialTheme.colorScheme.surface)
     ) {
         content()
@@ -112,49 +89,26 @@ fun MarkdownText(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface
 ) {
-    var inCodeBlock = false
-    var codeContent = ""
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    val blocks = remember(text) {
         val lines = text.split("\n")
+        val parsedBlocks = mutableListOf<MarkdownBlock>()
+        var inCodeBlock = false
+        var codeContent = StringBuilder()
         var currentParagraph = StringBuilder()
 
-        val flushParagraph: @Composable () -> Unit = {
+        fun flushParagraph() {
             if (currentParagraph.isNotEmpty()) {
-                Text(
-                    text = parseInlineMarkdown(currentParagraph.toString()),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = color,
-                    lineHeight = 24.sp
-                )
-                currentParagraph.clear()
+                parsedBlocks.add(MarkdownBlock.Paragraph(currentParagraph.toString().trim()))
+                currentParagraph.setLength(0)
             }
         }
 
         for (line in lines) {
             if (line.trim().startsWith("```")) {
                 if (inCodeBlock) {
-                    // end code block
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFF0F4F9))
-                            .padding(12.dp)
-                    ) {
-                        Text(
-                            text = codeContent.trimEnd(),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontFamily = FontFamily.Monospace
-                            ),
-                            color = Color(0xFF1C1C1E)
-                        )
-                    }
+                    parsedBlocks.add(MarkdownBlock.Code(codeContent.toString().trimEnd()))
+                    codeContent.setLength(0)
                     inCodeBlock = false
-                    codeContent = ""
                 } else {
                     flushParagraph()
                     inCodeBlock = true
@@ -163,89 +117,176 @@ fun MarkdownText(
             }
 
             if (inCodeBlock) {
-                codeContent += line + "\n"
+                codeContent.append(line).append("\n")
                 continue
             }
 
+            val trimmedLine = line.trim()
             when {
+                line.startsWith("|") && line.contains("|") -> {
+                    flushParagraph()
+                    val cells = line.split("|").filter { it.isNotBlank() }.map { it.trim() }
+                    if (cells.isNotEmpty() && !line.contains("---")) {
+                        parsedBlocks.add(MarkdownBlock.Table(cells))
+                    }
+                }
                 line.startsWith("### ") -> {
                     flushParagraph()
-                    Text(
-                        text = parseInlineMarkdown(line.removePrefix("### ").trim()),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = color,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                    )
+                    parsedBlocks.add(MarkdownBlock.Header(line.removePrefix("### ").trim(), 3))
                 }
                 line.startsWith("## ") -> {
                     flushParagraph()
-                    Text(
-                        text = parseInlineMarkdown(line.removePrefix("## ").trim()),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = color,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
-                    )
+                    parsedBlocks.add(MarkdownBlock.Header(line.removePrefix("## ").trim(), 2))
                 }
                 line.startsWith("# ") -> {
                     flushParagraph()
-                    Text(
-                        text = parseInlineMarkdown(line.removePrefix("# ").trim()),
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = color,
-                        modifier = Modifier.padding(top = 20.dp, bottom = 6.dp)
-                    )
+                    parsedBlocks.add(MarkdownBlock.Header(line.removePrefix("# ").trim(), 1))
                 }
-                line.trim().startsWith("- ") || line.trim().startsWith("* ") -> {
+                trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ") -> {
                     flushParagraph()
-                    Row(
-                        modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(text = "•", color = color, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            text = parseInlineMarkdown(line.trim().substring(2).trim()),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = color,
-                            lineHeight = 24.sp
-                        )
-                    }
+                    parsedBlocks.add(MarkdownBlock.ListItem(trimmedLine.substring(2).trim(), isOrdered = false))
                 }
-                line.trim().firstOrNull()?.isDigit() == true && line.trim().getOrNull(1) == '.' -> {
+                trimmedLine.firstOrNull()?.isDigit() == true && trimmedLine.getOrNull(1) == '.' -> {
                     flushParagraph()
-                    Row(
-                        modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = line.trim().take(2),
-                            color = color,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = parseInlineMarkdown(line.trim().substring(2).trim()),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = color,
-                            lineHeight = 24.sp
-                        )
-                    }
+                    val index = trimmedLine.takeWhile { it.isDigit() }
+                    parsedBlocks.add(MarkdownBlock.ListItem(trimmedLine.substring(index.length + 2).trim(), isOrdered = true, order = index))
                 }
-                line.isBlank() -> {
+                line.startsWith("> ") -> {
+                    flushParagraph()
+                    parsedBlocks.add(MarkdownBlock.BlockQuote(line.removePrefix("> ").trim()))
+                }
+                line.trim().isEmpty() -> {
                     flushParagraph()
                 }
                 else -> {
-                    if (currentParagraph.isNotEmpty()) {
-                        currentParagraph.append(" ")
-                    }
+                    if (currentParagraph.isNotEmpty()) currentParagraph.append(" ")
                     currentParagraph.append(line)
                 }
             }
         }
         flushParagraph()
+        parsedBlocks
     }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        blocks.forEach { block ->
+            when (block) {
+                is MarkdownBlock.Paragraph -> {
+                    Text(
+                        text = parseInlineMarkdown(block.text),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = color.copy(alpha = 0.9f),
+                        lineHeight = 28.sp
+                    )
+                }
+                is MarkdownBlock.Header -> {
+                    val style = when (block.level) {
+                        1 -> MaterialTheme.typography.headlineSmall
+                        2 -> MaterialTheme.typography.titleLarge
+                        else -> MaterialTheme.typography.titleMedium
+                    }
+                    Text(
+                        text = parseInlineMarkdown(block.text),
+                        style = style,
+                        fontWeight = FontWeight.Bold,
+                        color = color,
+                        modifier = Modifier.padding(top = if (block.level == 1) 12.dp else 4.dp)
+                    )
+                }
+                is MarkdownBlock.Code -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = block.code,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp
+                            ),
+                            color = color.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+                is MarkdownBlock.Table -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                            .padding(vertical = 8.dp, horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        block.cells.forEach { cell ->
+                            Text(
+                                text = parseInlineMarkdown(cell),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = color,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+                is MarkdownBlock.ListItem -> {
+                    Row(
+                        modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = if (block.isOrdered) "${block.order}." else "•",
+                            color = color,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = parseInlineMarkdown(block.text),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = color.copy(alpha = 0.9f),
+                            lineHeight = 26.sp
+                        )
+                    }
+                }
+                is MarkdownBlock.BlockQuote -> {
+                    Row(
+                        modifier = Modifier
+                            .padding(vertical = 4.dp)
+                            .drawBehind {
+                                drawLine(
+                                    color = color.copy(alpha = 0.2f),
+                                    start = Offset(0f, 0f),
+                                    end = Offset(0f, size.height),
+                                    strokeWidth = 4.dp.toPx()
+                                )
+                            }
+                            .padding(start = 16.dp)
+                    ) {
+                        Text(
+                            text = parseInlineMarkdown(block.text),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = color.copy(alpha = 0.7f),
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+sealed class MarkdownBlock {
+    data class Paragraph(val text: String) : MarkdownBlock()
+    data class Header(val text: String, val level: Int) : MarkdownBlock()
+    data class Code(val code: String) : MarkdownBlock()
+    data class Table(val cells: List<String>) : MarkdownBlock()
+    data class ListItem(val text: String, val isOrdered: Boolean, val order: String = "") : MarkdownBlock()
+    data class BlockQuote(val text: String) : MarkdownBlock()
 }
 
 fun parseInlineMarkdown(text: String): androidx.compose.ui.text.AnnotatedString {

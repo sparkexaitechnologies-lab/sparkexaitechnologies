@@ -1,5 +1,11 @@
 package com.example
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import com.example.util.NotificationHelper
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -61,13 +67,42 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(
                         navController = navController,
-                        startDestination = "chat"
+                        startDestination = "chat",
+                        enterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Start,
+                                animationSpec = tween(220)
+                            ) + fadeIn(animationSpec = tween(220)) +
+                            scaleIn(initialScale = 0.92f, animationSpec = tween(220))
+                        },
+                        exitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Start,
+                                animationSpec = tween(220)
+                            ) + fadeOut(animationSpec = tween(220)) +
+                            scaleOut(targetScale = 1.08f, animationSpec = tween(220))
+                        },
+                        popEnterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.End,
+                                animationSpec = tween(220)
+                            ) + fadeIn(animationSpec = tween(220)) +
+                            scaleIn(initialScale = 1.08f, animationSpec = tween(220))
+                        },
+                        popExitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.End,
+                                animationSpec = tween(220)
+                            ) + fadeOut(animationSpec = tween(220)) +
+                            scaleOut(targetScale = 0.92f, animationSpec = tween(220))
+                        }
                     ) {
                         // 1. ChatGPT-level Chat Screen (Start Destination)
                         composable("chat") {
                             ChatScreen(
                                 viewModel = viewModel,
-                                onNavigateToSettings = { navController.navigate("settings") },
+                                onNavigateToSidebar = { navController.navigate("sidebar") },
+                                onNavigateToSettings = { navController.navigate("profile") }, // Mapping settings to profile
                                 onNavigateToImages = { navController.navigate("images") },
                                 onNavigateToHelp = { navController.navigate("help") },
                                 onNavigateToVideoCreator = { navController.navigate("video_creator") },
@@ -75,14 +110,30 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 2. Profile and Settings Screen
-                        composable("settings") {
-                            SettingsScreen(
+                        // 1.5 Sidebar Full-Page Screen
+                        composable("sidebar") {
+                            SidebarScreen(
                                 viewModel = viewModel,
-                                onNavigateToHelp = { navController.navigate("help") },
-                                onNavigateToPrivacy = { navController.navigate("legal/privacy") },
-                                onNavigateToTerms = { navController.navigate("legal/terms") },
-                                onNavigateToMemberships = { navController.navigate("memberships") },
+                                onNavigateToProfile = { navController.navigate("profile") },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        // 2. User Profile and Settings Screen (Redesigned)
+                        composable("profile") {
+                            ProfileScreen(
+                                viewModel = viewModel,
+                                onNavigateToSubSetting = { subRoute -> navController.navigate("profile/$subRoute") },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        // Profile Sub-settings
+                        composable("profile/{subRoute}") { backStackEntry ->
+                            val subRoute = backStackEntry.arguments?.getString("subRoute") ?: ""
+                            SubSettingScreen(
+                                viewModel = viewModel,
+                                subRoute = subRoute,
                                 onBack = { navController.popBackStack() }
                             )
                         }

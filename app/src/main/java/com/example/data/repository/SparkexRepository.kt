@@ -47,6 +47,10 @@ class SparkexRepository(
         session
     }
 
+    suspend fun updateSession(session: ChatSession) = withContext(Dispatchers.IO) {
+        chatSessionDao.updateSession(session)
+    }
+
     suspend fun deleteSession(sessionId: String) = withContext(Dispatchers.IO) {
         chatSessionDao.deleteSessionById(sessionId)
         chatMessageDao.deleteMessagesBySession(sessionId)
@@ -62,6 +66,10 @@ class SparkexRepository(
 
     suspend fun addMessage(message: ChatMessage) = withContext(Dispatchers.IO) {
         chatMessageDao.insertMessage(message)
+    }
+
+    suspend fun deleteMessageById(id: Long) = withContext(Dispatchers.IO) {
+        chatMessageDao.deleteMessageById(id)
     }
 
     suspend fun addGeneratedImage(image: GeneratedImageItem) = withContext(Dispatchers.IO) {
@@ -109,8 +117,17 @@ class SparkexRepository(
             )
             chatMessageDao.insertMessage(userMessage)
 
+            // Apply client-side rate limit check
+            if (!com.example.util.RequestRateLimiter.isRequestAllowed()) {
+                val waitSeconds = com.example.util.RequestRateLimiter.getSecondsToWait()
+                return@withContext Result.failure(Exception("Rate limit exceeded. Please wait $waitSeconds seconds before sending another request to protect the API server."))
+            }
+
             // Resolve proper model name based on preferences and options
             var targetModel = modelToUse ?: "gemini-3.5-flash"
+            if (targetModel == "gemini-3.1-flash-lite") {
+                targetModel = "gemini-3.1-flash-lite-preview"
+            }
             if (thinkingEnabled) {
                 targetModel = "gemini-3.1-pro-preview" // Thinking requires gemini-3.1-pro-preview
             }
@@ -151,13 +168,18 @@ class SparkexRepository(
             }
 
             val session = chatSessionDao.getAllSessions() // We could fetch session-specific system instruction if needed
-            val systemInstructionText = """You are Sparkex AI, an elite personal executive assistant. Your task is to generate a highly professional, clean, and structured "Daily Rundown" or morning briefing for the user based on their provided data (reminders, tasks).
+            val systemInstructionText = """You are Sparkex AI, a helpful and smart AI core engine.
 
-Follow this strict layout format:
-1. Greeting: Start with "Hi [User's Name], here's your daily rundown 🤸"
-2. Top of Mind Section: Highlight the most urgent task or financial action due today. Use a clean bullet point, bold the key numbers/actions, and add relevant action links or sub-notes if available.
-
-Tone Guidelines: Use absolute distinction, refined vocabulary, and keep it distraction-free. Avoid markdown clutter like unnecessary triple asterisks; stick to clean Material 3 design-friendly structuring."""
+1. IDENTITY: If the user asks about your name, model, or engine, you must strictly reply as Sparkex AI. Do not mention Gemini or Google unless asked for technical specifications.
+2. ACTION HANDLERS: You will support custom UI triggers. If the user commands an action related to chat management, append the hidden token at the end of your conversational confirmation:
+   - For deleting/clearing chat: [ACTION: DELETE_CHAT]
+   - For renaming chat: [ACTION: RENAME_CHAT]
+   - For sharing chat: [ACTION: SHARE_CHAT]
+   - For pinning chat: [ACTION: PIN_CHAT]
+3. IMAGE GENERATION: If the user asks to create/generate an image, respond strictly with this format: [IMAGE_REQUEST: detailed description of the scene] followed by a friendly response.
+4. MAPS/LOCATION: If the user asks for directions, places, or spots, provide the visual coordinates or location names in this format: [MAP_REQUEST: Location Name, City].
+5. TASK SCHEDULING/CARDS: If the user wants to set a daily digest, job tracker, or reminder, return a custom layout token: [CARD_REQUEST: Task Name | Time | Instructions].
+6. TONALITY: Keep responses elegant, incredibly fast, and smart, matching a premium flagship AI assistant."""
 
             val systemInstructionContent = Content(parts = listOf(Part(text = systemInstructionText)))
 
@@ -175,7 +197,10 @@ Tone Guidelines: Use absolute distinction, refined vocabulary, and keep it distr
 
             val candidate = response.candidates?.firstOrNull()
             val replyContent = candidate?.content
-            val textReply = replyContent?.parts?.firstOrNull { it.text != null }?.text ?: "Received empty response from Sparkex AI."
+            var textReply = replyContent?.parts?.firstOrNull { it.text != null }?.text ?: "Received empty response from Sparkex AI."
+            
+            // Remove markdown formatting symbols completely as requested
+            // Removed formatting stripping to allow markdown
             
             // Extract speech or extra audio data if present
             var savedVoicePath: String? = null
@@ -194,11 +219,162 @@ Tone Guidelines: Use absolute distinction, refined vocabulary, and keep it distr
                 isAudioResponse = savedVoicePath != null,
                 modelUsed = targetModel
             )
-            // chatMessageDao.insertMessage(aiMessage)
+            chatMessageDao.insertMessage(aiMessage)
 
             Result.success(aiMessage)
         } catch (e: Exception) {
             Log.e(tag, "Error in sendChatMessage", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Executes a streaming chat query to Gemini, updating local database.
+     * Invokes onChunkReceived callback as new text pieces arrive.
+     */
+    suspend fun sendChatMessageStream(
+        sessionId: String,
+        userPrompt: String,
+        attachedImagePath: String? = null,
+        attachedVoicePath: String? = null,
+        modelToUse: String? = null,
+        thinkingEnabled: Boolean = false,
+        ttsEnabled: Boolean = false,
+        onChunkReceived: (String) -> Unit
+    ): Result<ChatMessage> = withContext(Dispatchers.IO) {
+        try {
+            val apiKey = BuildConfig.GEMINI_API_KEY
+            if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
+                return@withContext Result.failure(Exception("Gemini API Key is empty. Please configure it in the AI Studio Secrets panel."))
+            }
+
+            // Save user message locally
+            val userMessage = ChatMessage(
+                sessionId = sessionId,
+                role = "user",
+                text = userPrompt,
+                imagePath = attachedImagePath,
+                voicePath = attachedVoicePath
+            )
+            chatMessageDao.insertMessage(userMessage)
+
+            // Apply client-side rate limit check
+            if (!com.example.util.RequestRateLimiter.isRequestAllowed()) {
+                val waitSeconds = com.example.util.RequestRateLimiter.getSecondsToWait()
+                return@withContext Result.failure(Exception("Rate limit exceeded. Please wait $waitSeconds seconds before sending another request to protect the API server."))
+            }
+
+            // Resolve proper model name based on preferences and options
+            var targetModel = modelToUse ?: "gemini-3.5-flash"
+            if (targetModel == "gemini-3.1-flash-lite") {
+                targetModel = "gemini-3.1-flash-lite-preview"
+            }
+            if (thinkingEnabled) {
+                targetModel = "gemini-3.1-pro-preview" // Thinking requires gemini-3.1-pro-preview
+            }
+
+            // Get historical context for multi-turn chat
+            val messageHistory = chatMessageDao.getMessagesBySessionSync(sessionId)
+            val contents = mutableListOf<Content>()
+
+            // Map history to Content structures
+            messageHistory.forEach { msg ->
+                val parts = mutableListOf<Part>()
+                if (msg.role == "user" && msg.imagePath != null) {
+                    val base64Img = encodeImageToBase64(msg.imagePath)
+                    if (base64Img != null) {
+                        parts.add(Part(inlineData = InlineData(mimeType = "image/jpeg", data = base64Img)))
+                    }
+                }
+                parts.add(Part(text = msg.text))
+                contents.add(Content(role = msg.role, parts = parts))
+            }
+
+            // Configuration options
+            var genConfig: GenerationConfig? = null
+            if (thinkingEnabled) {
+                genConfig = GenerationConfig(
+                    thinkingConfig = ThinkingConfig(thinkingLevel = "high")
+                )
+            }
+
+            val systemInstructionText = """You are Sparkex AI, a helpful and smart AI core engine.
+
+1. IDENTITY: If the user asks about your name, model, or engine, you must strictly reply as Sparkex AI. Do not mention Gemini or Google unless asked for technical specifications.
+2. ACTION HANDLERS: You will support custom UI triggers. If the user commands an action related to chat management, append the hidden token at the end of your conversational confirmation:
+   - For deleting/clearing chat: [ACTION: DELETE_CHAT]
+   - For renaming chat: [ACTION: RENAME_CHAT]
+   - For sharing chat: [ACTION: SHARE_CHAT]
+   - For pinning chat: [ACTION: PIN_CHAT]
+3. IMAGE GENERATION: If the user asks to create/generate an image, respond strictly with this format: [IMAGE_REQUEST: detailed description of the scene] followed by a friendly response.
+4. MAPS/LOCATION: If the user asks for directions, places, or spots, provide the visual coordinates or location names in this format: [MAP_REQUEST: Location Name, City].
+5. TASK SCHEDULING/CARDS: If the user wants to set a daily digest, job tracker, or reminder, return a custom layout token: [CARD_REQUEST: Task Name | Time | Instructions].
+6. TONALITY: Keep responses elegant, incredibly fast, and smart, matching a premium flagship AI assistant."""
+
+            val systemInstructionContent = Content(parts = listOf(Part(text = systemInstructionText)))
+
+            val request = GenerateContentRequest(
+                contents = contents,
+                generationConfig = genConfig,
+                systemInstruction = systemInstructionContent
+            )
+
+            val response = RetrofitClient.service.generateContentStream(targetModel, apiKey, request)
+            val reader = response.byteStream().bufferedReader()
+            val jsonBuffer = java.lang.StringBuilder()
+            var textReply = ""
+
+            val responseAdapter = com.squareup.moshi.Moshi.Builder().build().adapter(GenerateContentResponse::class.java)
+
+            reader.useLines { lines ->
+                for (rawLine in lines) {
+                    val trimmed = rawLine.trim()
+                    if (trimmed.isEmpty() || trimmed == "[" || trimmed == "]") {
+                        continue
+                    }
+                    val cleanLine = if (trimmed.startsWith(",")) trimmed.substring(1).trim() else trimmed
+                    if (cleanLine.isEmpty()) continue
+
+                    jsonBuffer.append(cleanLine)
+                    try {
+                        var chunkStr = jsonBuffer.toString().trim()
+                        if (chunkStr.endsWith(",")) {
+                            chunkStr = chunkStr.substring(0, chunkStr.length - 1).trim()
+                        }
+                        val chunk = responseAdapter.fromJson(chunkStr)
+                        if (chunk != null) {
+                            val text = chunk.candidates?.firstOrNull()?.content?.parts?.firstOrNull { it.text != null }?.text
+                            if (text != null) {
+                                textReply += text
+                                onChunkReceived(text)
+                            }
+                            jsonBuffer.setLength(0) // Clear buffer on success
+                        }
+                    } catch (e: Exception) {
+                        // Keep accumulating in buffer, as it might be a multi-line JSON
+                    }
+                }
+            }
+
+            if (textReply.isEmpty()) {
+                textReply = "Received empty response from Sparkex AI."
+                onChunkReceived(textReply)
+            }
+
+            // Save AI message to database
+            val aiMessage = ChatMessage(
+                sessionId = sessionId,
+                role = "model",
+                text = textReply,
+                voicePath = null,
+                isAudioResponse = false,
+                modelUsed = targetModel
+            )
+            chatMessageDao.insertMessage(aiMessage)
+
+            Result.success(aiMessage)
+        } catch (e: Exception) {
+            Log.e(tag, "Error in sendChatMessageStream", e)
             Result.failure(e)
         }
     }
@@ -209,6 +385,12 @@ Tone Guidelines: Use absolute distinction, refined vocabulary, and keep it distr
      */
     suspend fun generateImage(prompt: String, resolution: String): Result<String> = withContext(Dispatchers.IO) {
         try {
+            // Apply client-side rate limit check
+            if (!com.example.util.RequestRateLimiter.isRequestAllowed()) {
+                val waitSeconds = com.example.util.RequestRateLimiter.getSecondsToWait()
+                return@withContext Result.failure(Exception("Rate limit exceeded. Please wait $waitSeconds seconds before generating another image to protect the API server."))
+            }
+
             val apiKey = BuildConfig.GEMINI_API_KEY
             if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
                 return@withContext Result.failure(Exception("API Key not set. Please use AI Studio Secrets panel."))

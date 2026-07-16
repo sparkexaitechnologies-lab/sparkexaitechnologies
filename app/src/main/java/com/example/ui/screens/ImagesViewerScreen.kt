@@ -47,22 +47,22 @@ fun ImagesViewerScreen(
     val sizesList = listOf("1K", "2K", "4K")
 
     Scaffold(
-        containerColor = Color(0xFFF7F7F8), // Soft off-white
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Creative Studio", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.Black) },
+                title = { Text("Creative Studio", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.Black,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFFF7F7F8)
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -86,13 +86,13 @@ fun ImagesViewerScreen(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(28.dp)) // circular
-                        .background(Color.Black),
+                        .background(MaterialTheme.colorScheme.onSurface),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Image,
                         contentDescription = "Creative Studio",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.surface,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -101,14 +101,14 @@ fun ImagesViewerScreen(
                     text = "AI Creative Studio",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                     letterSpacing = (-0.5).sp
                 )
                 Text(
                     text = "Generate high-resolution digital art, illustration canvases, and photorealistic concept renders instantly.",
                     fontSize = 14.sp,
-                    color = Color(0xFF6E6E73),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     lineHeight = 22.sp,
                     modifier = Modifier.padding(horizontal = 12.dp)
@@ -118,9 +118,9 @@ fun ImagesViewerScreen(
             // Creative Generator Box
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -130,7 +130,7 @@ fun ImagesViewerScreen(
                         text = "Generate High-Quality Artwork",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     OutlinedTextField(
@@ -138,12 +138,14 @@ fun ImagesViewerScreen(
                         onValueChange = { promptText = it },
                         placeholder = { Text("A futuristic neon lion wearing glasses...") },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(18.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Black,
-                            unfocusedBorderColor = Color(0xFFE5E5EA),
-                            focusedLabelColor = Color.Black,
-                            unfocusedLabelColor = Color(0xFF6E6E73)
+                            focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         )
                     )
 
@@ -161,16 +163,16 @@ fun ImagesViewerScreen(
                                 "Resolution:", 
                                 fontSize = 11.sp, 
                                 fontWeight = FontWeight.Bold, 
-                                color = Color(0xFF6E6E73)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             sizesList.forEach { size ->
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (selectedSize == size) Color.Black else Color(0xFFF7F7F8))
+                                        .background(if (selectedSize == size) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceVariant)
                                         .border(
                                             width = 1.dp,
-                                            color = if (selectedSize == size) Color.Black else Color(0xFFE5E5EA),
+                                            color = if (selectedSize == size) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
                                             shape = RoundedCornerShape(8.dp)
                                         )
                                         .clickable { selectedSize = size }
@@ -181,7 +183,7 @@ fun ImagesViewerScreen(
                                         text = size,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (selectedSize == size) Color.White else Color(0xFF6E6E73)
+                                        color = if (selectedSize == size) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -198,17 +200,17 @@ fun ImagesViewerScreen(
                             },
                             enabled = !isGeneratingImage && promptText.isNotBlank(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Black,
-                                contentColor = Color.White,
-                                disabledContainerColor = Color(0xFFE5E5EA),
-                                disabledContentColor = Color(0xFF6E6E73)
+                                containerColor = MaterialTheme.colorScheme.onSurface,
+                                contentColor = MaterialTheme.colorScheme.surface,
+                                disabledContainerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(18.dp)
                         ) {
                             if (isGeneratingImage) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
-                                    color = Color.Black,
+                                    color = MaterialTheme.colorScheme.surface,
                                     strokeWidth = 2.dp
                                 )
                             } else {
@@ -238,7 +240,7 @@ fun ImagesViewerScreen(
                 text = "My Digital Creations",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             if (images.isEmpty()) {
@@ -255,19 +257,19 @@ fun ImagesViewerScreen(
                         Icon(
                             imageVector = Icons.Outlined.Image,
                             contentDescription = null,
-                            tint = Color(0xFF6E6E73),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(44.dp)
                         )
                         Text(
                             text = "No creations found yet.",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Describe an artwork above to start.",
                             fontSize = 13.sp,
-                            color = Color(0xFF6E6E73)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -283,8 +285,8 @@ fun ImagesViewerScreen(
                         Box(
                             modifier = Modifier
                                 .aspectRatio(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .border(1.dp, Color(0xFFE5E5EA), RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(18.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(18.dp))
                                 .clickable { activeViewItem = item }
                         ) {
                             AsyncImage(
@@ -302,7 +304,7 @@ fun ImagesViewerScreen(
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(Color.Black.copy(alpha = 0.7f))
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
+                             ) {
                                 Text(
                                     text = item.size,
                                     fontSize = 10.sp,
@@ -320,13 +322,13 @@ fun ImagesViewerScreen(
         activeViewItem?.let { item ->
             AlertDialog(
                 onDismissRequest = { activeViewItem = null },
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(24.dp),
                 confirmButton = {
                     Button(
                         onClick = { activeViewItem = null },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
-                        shape = RoundedCornerShape(12.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSurface, contentColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(18.dp)
                     ) {
                         Text("Close", fontWeight = FontWeight.Bold)
                     }
@@ -341,7 +343,7 @@ fun ImagesViewerScreen(
                         Icon(
                             imageVector = Icons.Outlined.Delete,
                             contentDescription = "Delete Image",
-                            tint = Color.Red,
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -355,8 +357,8 @@ fun ImagesViewerScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .aspectRatio(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .border(1.dp, Color(0xFFE5E5EA), RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(18.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(18.dp))
                         ) {
                             AsyncImage(
                                 model = File(item.imagePath),
@@ -370,13 +372,13 @@ fun ImagesViewerScreen(
                             text = "Prompt: ${item.prompt}",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
                             text = "Resolution: ${item.size} (${if (item.size == "1K") "1024x1024" else if (item.size == "2K") "2048x2048" else "4096x4096"})",
                             fontSize = 12.sp,
-                            color = Color(0xFF6E6E73)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

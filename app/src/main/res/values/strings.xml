@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Sparkex AI</string>
+    <string name="greeting_1">How can I help you today?</string>
+    <string name="greeting_2">What\'s on your mind?</string>
+    <string name="greeting_3">Ask me anything.</string>
+    <string name="greeting_4">Ready to help.</string>
+    <string name="greeting_5">Let\'s get started.</string>
 </resources>

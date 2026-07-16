@@ -26,22 +26,22 @@ fun LegalScreen(
     val title = if (isPrivacy) "Privacy Policy" else "Terms of Service"
 
     Scaffold(
-        containerColor = Color(0xFFF7F7F8), // Soft off-white
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.Black) },
+                title = { Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.Black,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFFF7F7F8)
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -59,7 +59,7 @@ fun LegalScreen(
                     text = "Last Updated: July 2026",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF6E6E73)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -124,9 +124,9 @@ fun LegalSectionCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -139,29 +139,29 @@ fun LegalSectionCard(
                 Box(
                     modifier = Modifier
                         .size(24.dp)
-                        .background(Color(0xFFF7F7F8), RoundedCornerShape(6.dp))
-                        .border(1.dp, Color(0xFFE5E5EA), RoundedCornerShape(6.dp)),
+                        .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
                     contentAlignment = androidx.compose.ui.Alignment.Center
                 ) {
                     Text(
                         text = number,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Text(
                     text = title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
             Text(
                 text = content,
                 fontSize = 13.sp,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 19.sp
             )
         }

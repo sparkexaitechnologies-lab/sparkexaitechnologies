@@ -11,29 +11,31 @@ import android.app.Activity
 import androidx.compose.runtime.Composable
 
 private val DarkColorScheme = darkColorScheme(
-    primary = DarkPrimary,
-    onPrimary = DarkOnPrimary,
-    background = DarkBackground,
-    onBackground = DarkPrimary,
-    surface = DarkSurface,
-    onSurface = DarkPrimary,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkSecondary,
-    outline = DarkBorder,
-    error = AlertRed
+    primary = BW_White,
+    onPrimary = BW_Black,
+    secondary = BW_LightGray,
+    background = BW_Black,
+    onBackground = BW_White,
+    surface = BW_DarkGray,
+    onSurface = BW_White,
+    surfaceVariant = BW_SurfaceGray,
+    onSurfaceVariant = BW_MediumGray,
+    outline = BW_Gray,
+    tertiary = BW_White,
+    error = BW_Error
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LightPrimary,
-    onPrimary = LightOnPrimary,
-    background = LightBackground,
-    onBackground = LightPrimary,
-    surface = LightSurface,
-    onSurface = LightPrimary,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightSecondary,
-    outline = LightBorder,
-    error = AlertRed
+    primary = BW_Black,
+    onPrimary = BW_White,
+    background = BW_OffWhite,
+    onBackground = BW_Black,
+    surface = BW_White,
+    onSurface = BW_Black,
+    surfaceVariant = BW_Silver,
+    onSurfaceVariant = BW_MediumGray,
+    outline = BW_LightGray,
+    error = BW_Error
 )
 
 @Composable

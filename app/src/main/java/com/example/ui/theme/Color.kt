@@ -1,35 +1,17 @@
 package com.example.ui.theme
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
-// Premium Minimalist Dark Palette (Clean, flat, neutral dark)
-val DarkBackground = Color(0xFF0A0A0A)      // Deep pure black
-val DarkSurface = Color(0xFF121212)         // Flat dark gray
-val DarkSurfaceVariant = Color(0xFF1C1C1E)  // Light gray for borders/divs
-val DarkPrimary = Color(0xFFFFFFFF)          // Soft white text
-val DarkOnPrimary = Color(0xFF000000)        // Contrasting black
-val DarkSecondary = Color(0xFF8E8E93)        // Soft gray
-val DarkBorder = Color(0xFF2C2C2E)           // Very light dark border
-
-// Premium Minimalist Light Palette (Porcelain off-white theme)
-val LightBackground = Color(0xFFF7F7F8)     // Soft off-white
-val LightSurface = Color(0xFFFFFFFF)        // Pure white card surface
-val LightSurfaceVariant = Color(0xFFF1F1F3) // Light porcelain gray
-val LightPrimary = Color(0xFF000000)         // Pitch black text/accent
-val LightOnPrimary = Color(0xFFFFFFFF)       // White text
-val LightSecondary = Color(0xFF6E6E73)       // Medium gray secondary text
-val LightBorder = Color(0xFFE5E5EA)          // Very light gray border
-
-// Interactive accents
-val SilverAccent = Color(0xFFE5E5EA)
-val CharcoalAccent = Color(0xFF1D1D1F)
-val AlertRed = Color(0xFFE30000)
-
-val SparkexGold: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = MaterialTheme.colorScheme.primary
-
+// Pure Black & White Premium Palette
+val BW_Black = Color(0xFF000000)
+val BW_DarkGray = Color(0xFF141414)
+val BW_SurfaceGray = Color(0xFF1E1E1E)
+val BW_Gray = Color(0xFF333333)
+val BW_MediumGray = Color(0xFF888888)
+val BW_LightGray = Color(0xFFCCCCCC)
+val BW_Silver = Color(0xFFE5E5EA)
+val BW_OffWhite = Color(0xFFF7F7F8)
+val BW_White = Color(0xFFFFFFFF)
+val BW_Error = Color(0xFFE30000)
+val BW_TransparentWhite = Color(0x1AFFFFFF)
+val BW_TransparentBlack = Color(0x1A000000)

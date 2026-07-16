@@ -43,22 +43,22 @@ fun VideoCreatorScreen(
     val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
-        containerColor = Color(0xFFF7F7F8), // Soft off-white
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Video Director", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.Black) },
+                title = { Text("Video Director", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.Black,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFFF7F7F8)
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -83,13 +83,13 @@ fun VideoCreatorScreen(
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
-                            .background(Color.Black),
+                            .background(MaterialTheme.colorScheme.onSurface),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Videocam,
                             contentDescription = "Video Creator",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.surface,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -98,14 +98,14 @@ fun VideoCreatorScreen(
                         text = "AI Video Director Studio",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                         letterSpacing = (-0.5).sp
                     )
                     Text(
                         text = "Harness the power of Google Veo text-to-video diffusion engines to craft professional cinematic visual shots instantly.",
                         fontSize = 14.sp,
-                        color = Color(0xFF6E6E73),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         lineHeight = 22.sp,
                         modifier = Modifier.padding(horizontal = 12.dp)
@@ -116,9 +116,9 @@ fun VideoCreatorScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -128,7 +128,7 @@ fun VideoCreatorScreen(
                             text = "Describe Your Cinematic Scene",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         OutlinedTextField(
@@ -137,12 +137,14 @@ fun VideoCreatorScreen(
                             placeholder = { Text("Cinematic slow tracking shot of a silver astronaut exploring a vibrant alien crystal forest, cinematic lighting, 8k...") },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(18.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color.Black,
-                                unfocusedBorderColor = Color(0xFFE5E5EA),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color(0xFF6E6E73)
+                                focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                             )
                         )
 
@@ -151,7 +153,7 @@ fun VideoCreatorScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("Aspect Ratio", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6E6E73))
+                                Text("Aspect Ratio", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     listOf("16:9", "9:16", "1:1").forEach { ratio ->
                                         MinimalSelectableChip(
@@ -164,7 +166,7 @@ fun VideoCreatorScreen(
                             }
 
                             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("Clip Duration", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6E6E73))
+                                Text("Clip Duration", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     listOf("5s", "10s").forEach { dur ->
                                         MinimalSelectableChip(
@@ -221,12 +223,12 @@ fun VideoCreatorScreen(
                             enabled = !isCompiling && prompt.isNotBlank(),
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Black,
-                                contentColor = Color.White,
-                                disabledContainerColor = Color(0xFFE5E5EA),
-                                disabledContentColor = Color(0xFF6E6E73)
+                                containerColor = MaterialTheme.colorScheme.onSurface,
+                                contentColor = MaterialTheme.colorScheme.surface,
+                                disabledContainerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(18.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Videocam, 
@@ -244,9 +246,9 @@ fun VideoCreatorScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                     ) {
                         Column(
                             modifier = Modifier.padding(20.dp),
@@ -256,18 +258,18 @@ fun VideoCreatorScreen(
                                 text = "Compiling Render Pipeline",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
-                                color = Color.Black
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             LinearProgressIndicator(
                                 progress = { progressVal },
                                 modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                                color = Color.Black,
-                                trackColor = Color(0xFFF7F7F8)
+                                color = MaterialTheme.colorScheme.onSurface,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                             Text(
                                 text = compileStatus,
                                 fontSize = 12.sp,
-                                color = Color(0xFF6E6E73)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -278,9 +280,9 @@ fun VideoCreatorScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                     ) {
                         Column(
                             modifier = Modifier.padding(20.dp),
@@ -295,19 +297,19 @@ fun VideoCreatorScreen(
                                     text = "Ready Director Cut",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
-                                    color = Color.Black
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(Color.Black)
+                                        .background(MaterialTheme.colorScheme.onSurface)
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         text = "VEO RENDER",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        color = MaterialTheme.colorScheme.surface
                                     )
                                 }
                             }
@@ -317,7 +319,7 @@ fun VideoCreatorScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(if (result.aspectRatio == "16:9") 1.77f else if (result.aspectRatio == "9:16") 0.56f else 1f)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(18.dp))
                                     .background(Color.Black),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -349,7 +351,7 @@ fun VideoCreatorScreen(
                                 text = "Director Storyboard",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black
+                                color = MaterialTheme.colorScheme.onSurface
                             )
 
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -362,13 +364,13 @@ fun VideoCreatorScreen(
                                         Icon(
                                             imageVector = Icons.Outlined.PlayArrow,
                                             contentDescription = null,
-                                            tint = Color.Black,
+                                            tint = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Text(
                                             text = scene,
                                             fontSize = 13.sp,
-                                            color = Color.Black
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
@@ -389,12 +391,12 @@ fun MinimalSelectableChip(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) Color.Black else Color.White)
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceVariant)
             .border(
                 width = 1.dp,
-                color = if (isSelected) Color.Black else Color(0xFFE5E5EA),
-                shape = RoundedCornerShape(8.dp)
+                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(18.dp)
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -404,7 +406,7 @@ fun MinimalSelectableChip(
             text = text,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) Color.White else Color(0xFF6E6E73)
+            color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

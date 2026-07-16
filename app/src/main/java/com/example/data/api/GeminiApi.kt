@@ -8,6 +8,8 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
+import okhttp3.ResponseBody
 import java.util.concurrent.TimeUnit
 
 @JsonClass(generateAdapter = true)
@@ -98,6 +100,14 @@ interface GeminiApiService {
         @Query("key") apiKey: String,
         @Body request: GenerateContentRequest
     ): GenerateContentResponse
+
+    @POST("v1beta/models/{model}:streamGenerateContent")
+    @Streaming
+    suspend fun generateContentStream(
+        @Path("model") model: String,
+        @Query("key") apiKey: String,
+        @Body request: GenerateContentRequest
+    ): ResponseBody
 }
 
 object RetrofitClient {

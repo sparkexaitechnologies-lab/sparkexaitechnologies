@@ -90,22 +90,22 @@ fun HelpScreen(
     )
 
     Scaffold(
-        containerColor = Color(0xFFF7F7F8), // Soft off-white
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Help & Guides", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.Black) },
+                title = { Text("Help & Guides", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.Black,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFFF7F7F8)
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -127,13 +127,13 @@ fun HelpScreen(
                         text = "Welcome to Sparkex AI",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = (-0.5).sp
                     )
                     Text(
                         text = "This application is built with pristine, zero-distraction layout principles. Follow this step-by-step breakdown on how to leverage our high-performance assistance system:",
                         fontSize = 14.sp,
-                        color = Color(0xFF6E6E73),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 22.sp
                     )
                 }
@@ -142,9 +142,9 @@ fun HelpScreen(
             items(helpSections) { section ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -159,13 +159,13 @@ fun HelpScreen(
                                 modifier = Modifier
                                     .size(44.dp)
                                     .clip(CircleShape)
-                                    .background(Color.Black),
+                                    .background(MaterialTheme.colorScheme.onSurface),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = section.icon,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.surface,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -174,18 +174,18 @@ fun HelpScreen(
                                     text = section.title,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.Black
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = section.description,
                                     fontSize = 12.sp,
-                                    color = Color(0xFF6E6E73),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     lineHeight = 16.sp
                                 )
                             }
                         }
 
-                        HorizontalDivider(color = Color(0xFFF2F2F7), thickness = 1.dp)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
 
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             section.steps.forEachIndexed { index, step ->
@@ -199,14 +199,14 @@ fun HelpScreen(
                                         modifier = Modifier
                                             .size(24.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0xFFF2F2F7)),
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = "${index + 1}",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = Color.Black
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                     
@@ -215,7 +215,7 @@ fun HelpScreen(
                                     Text(
                                         text = step,
                                         fontSize = 14.sp,
-                                        color = Color(0xFF1C1C1E),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         lineHeight = 20.sp,
                                         modifier = Modifier.weight(1f)
                                     )
