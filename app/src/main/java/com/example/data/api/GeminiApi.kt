@@ -16,8 +16,19 @@ import java.util.concurrent.TimeUnit
 data class GenerateContentRequest(
     val contents: List<Content>,
     val generationConfig: GenerationConfig? = null,
-    val systemInstruction: Content? = null
+    val systemInstruction: Content? = null,
+    val tools: List<Tool>? = null
 )
+
+@JsonClass(generateAdapter = true)
+data class Tool(
+    val googleSearch: GoogleSearch? = null
+)
+
+@JsonClass(generateAdapter = true)
+class GoogleSearch
+
+
 
 @JsonClass(generateAdapter = true)
 data class Content(

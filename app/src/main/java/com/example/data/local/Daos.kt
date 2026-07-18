@@ -8,6 +8,9 @@ interface ChatSessionDao {
     @Query("SELECT * FROM chat_sessions ORDER BY timestamp DESC")
     fun getAllSessions(): Flow<List<ChatSession>>
 
+    @Query("SELECT * FROM chat_sessions WHERE id = :sessionId LIMIT 1")
+    suspend fun getSessionByIdSync(sessionId: String): ChatSession?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: ChatSession)
 

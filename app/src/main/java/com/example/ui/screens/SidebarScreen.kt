@@ -58,11 +58,57 @@ fun SidebarScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
+            var isSearching by remember { mutableStateOf(false) }
+            val searchQuery by viewModel.searchQuery.collectAsState()
+
             TopAppBar(
-                title = { Text("Sparkex AI", fontWeight = FontWeight.Bold) },
+                title = {
+                    if (isSearching) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.setSearchQuery(it) },
+                            placeholder = { Text("Search conversations...", fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                cursorColor = MaterialTheme.colorScheme.primary
+                            ),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)
+                        )
+                    } else {
+                        Text("Sparkex AI", fontWeight = FontWeight.Bold)
+                    }
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = {
+                            if (isSearching) {
+                                isSearching = false
+                                viewModel.setSearchQuery("")
+                            } else {
+                                onBack()
+                            }
+                        }
+                    ) {
                         Icon(imageVector = Icons.Outlined.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (isSearching) {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                Icon(imageVector = Icons.Outlined.Close, contentDescription = "Clear Search", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    } else {
+                        IconButton(onClick = { isSearching = true }) {
+                            Icon(imageVector = Icons.Outlined.Search, contentDescription = "Search Conversations", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)

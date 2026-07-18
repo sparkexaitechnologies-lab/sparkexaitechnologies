@@ -39,7 +39,35 @@ class SparkexViewModel(
     private val _isSpeakingTts = MutableStateFlow<Long?>(null)
     val isSpeakingTts: StateFlow<Long?> = _isSpeakingTts.asStateFlow()
 
-    val sessions = repository.allSessions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    val sessions = kotlinx.coroutines.flow.combine(repository.allSessions, _searchQuery) { list, query ->
+        if (query.isBlank()) list
+        else list.filter { it.title.contains(query, ignoreCase = true) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    private val _followUpSuggestions = MutableStateFlow<List<String>>(emptyList())
+    val followUpSuggestions: StateFlow<List<String>> = _followUpSuggestions.asStateFlow()
+
+    fun clearFollowUpSuggestions() {
+        _followUpSuggestions.value = emptyList()
+    }
+
+    private val _isLiveVoiceModeActive = MutableStateFlow(false)
+    val isLiveVoiceModeActive: StateFlow<Boolean> = _isLiveVoiceModeActive.asStateFlow()
+
+    fun setLiveVoiceModeActive(active: Boolean) {
+        _isLiveVoiceModeActive.value = active
+        if (!active) {
+            stopTtsSpeaking()
+        }
+    }
+
     val generatedImages = repository.allGeneratedImages
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -68,6 +96,9 @@ class SparkexViewModel(
 
     private val _deepResearchEnabled = MutableStateFlow(false)
     val deepResearchEnabled: StateFlow<Boolean> = _deepResearchEnabled.asStateFlow()
+
+    private val _thinkingEnabled = MutableStateFlow(false)
+    val thinkingEnabled: StateFlow<Boolean> = _thinkingEnabled.asStateFlow()
 
     private val _ttsEnabled = MutableStateFlow(true)
     val ttsEnabled: StateFlow<Boolean> = _ttsEnabled.asStateFlow()
@@ -98,6 +129,7 @@ class SparkexViewModel(
         textToSpeech = TextToSpeech(application) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 textToSpeech?.language = Locale.getDefault()
+                setupUtteranceListener()
             } else {
                 Log.e(tag, "Failed to initialize TextToSpeech")
             }
@@ -121,6 +153,12 @@ class SparkexViewModel(
 
     fun toggleDeepResearch() {
         _deepResearchEnabled.value = !_deepResearchEnabled.value
+        if (_deepResearchEnabled.value) _thinkingEnabled.value = false
+    }
+
+    fun toggleThinking() {
+        _thinkingEnabled.value = !_thinkingEnabled.value
+        if (_thinkingEnabled.value) _deepResearchEnabled.value = false
     }
 
     fun toggleTts() {
@@ -195,7 +233,7 @@ class SparkexViewModel(
                 attachedImagePath = null,
                 attachedVoicePath = null,
                 modelToUse = model,
-                thinkingEnabled = _deepResearchEnabled.value,
+                thinkingEnabled = _deepResearchEnabled.value || _thinkingEnabled.value,
                 ttsEnabled = _ttsEnabled.value,
                 onChunkReceived = { chunk ->
                     currentText += chunk
@@ -217,6 +255,14 @@ class SparkexViewModel(
                 if (_ttsEnabled.value) {
                     toggleTtsSpeaking(fullMessage)
                 }
+                // Smart Titles, Memory, and Suggestions
+                launch {
+                    repository.generateSmartTitle(session.id, prompt, fullMessage.text)
+                }
+                launch {
+                    repository.extractAndStoreMemory(prompt, fullMessage.text)
+                }
+                generateFollowUpSuggestions(fullMessage.text)
             } else {
                 val errorMsg = result.exceptionOrNull()?.message ?: "An unknown error occurred"
                 val errorChatMessage = com.example.data.local.ChatMessage(
@@ -247,6 +293,7 @@ class SparkexViewModel(
             }
             _isGenerating.value = true
 
+            var lastSpokenIndex = 0
             var currentText = ""
             val model = userProfile.value.preferredModel
             val result = repository.sendChatMessageStream(
@@ -255,7 +302,7 @@ class SparkexViewModel(
                 attachedImagePath = attachedImagePath,
                 attachedVoicePath = attachedVoicePath,
                 modelToUse = model,
-                thinkingEnabled = _deepResearchEnabled.value,
+                thinkingEnabled = _deepResearchEnabled.value || _thinkingEnabled.value,
                 ttsEnabled = _ttsEnabled.value,
                 onChunkReceived = { chunk ->
                     currentText += chunk
@@ -267,6 +314,35 @@ class SparkexViewModel(
                         modelUsed = model
                     )
                     _currentStreamingMessage.value = placeholderMsg
+
+                    if (_isLiveVoiceModeActive.value) {
+                        var textToProcess = currentText.substring(lastSpokenIndex)
+                        while (textToProcess.isNotEmpty()) {
+                            var splitPos = -1
+                            for (i in textToProcess.indices) {
+                                val char = textToProcess[i]
+                                if (char == '\n') {
+                                    splitPos = i
+                                    break
+                                } else if (char in listOf('.', '?', '!')) {
+                                    if (i + 1 == textToProcess.length || textToProcess[i + 1].isWhitespace()) {
+                                        splitPos = i
+                                        break
+                                    }
+                                }
+                            }
+                            if (splitPos != -1) {
+                                val sentence = textToProcess.substring(0, splitPos + 1).trim()
+                                if (sentence.isNotEmpty()) {
+                                    speakLiveSentence(sentence)
+                                }
+                                lastSpokenIndex += splitPos + 1
+                                textToProcess = currentText.substring(lastSpokenIndex)
+                            } else {
+                                break
+                            }
+                        }
+                    }
                 }
             )
 
@@ -274,13 +350,164 @@ class SparkexViewModel(
 
             if (result.isSuccess) {
                 val fullMessage = result.getOrThrow()
-                if (_ttsEnabled.value) {
+                if (_isLiveVoiceModeActive.value) {
+                    val finalRemaining = fullMessage.text.substring(lastSpokenIndex).trim()
+                    if (finalRemaining.isNotEmpty()) {
+                        speakLiveSentence(finalRemaining)
+                    }
+                } else if (_ttsEnabled.value) {
                     toggleTtsSpeaking(fullMessage)
                 }
+                // Smart Titles, Memory, and Suggestions
+                if (currentSessionId.isNullOrEmpty()) {
+                    launch {
+                        repository.generateSmartTitle(sessionId, text, fullMessage.text)
+                    }
+                }
+                launch {
+                    repository.extractAndStoreMemory(text, fullMessage.text)
+                }
+                generateFollowUpSuggestions(fullMessage.text)
             } else {
                 val errorMsg = result.exceptionOrNull()?.message ?: "An unknown error occurred"
                 val errorChatMessage = com.example.data.local.ChatMessage(
                     sessionId = sessionId,
+                    role = "model",
+                    text = "Error: $errorMsg"
+                )
+                repository.addMessage(errorChatMessage)
+            }
+            _isGenerating.value = false
+        }
+    }
+
+    /**
+     * Generates 3 quick short follow-up prompts using Gemini based on the last message.
+     */
+    fun generateFollowUpSuggestions(lastMessageText: String) {
+        viewModelScope.launch {
+            try {
+                val apiKey = com.example.BuildConfig.GEMINI_API_KEY
+                if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") return@launch
+
+                val systemPrompt = "You are a helpful assistant. Generate exactly 3 extremely short and smart follow-up prompts/questions that the user might want to ask next, based on the last message. Return only a simple JSON array of strings containing the 3 short prompts. E.g. [\"Tell me more\", \"Give an example\", \"Summarize this\"]. Keep each suggestion under 5 words."
+
+                val request = com.example.data.api.GenerateContentRequest(
+                    contents = listOf(com.example.data.api.Content(parts = listOf(com.example.data.api.Part(text = lastMessageText)))),
+                    systemInstruction = com.example.data.api.Content(parts = listOf(com.example.data.api.Part(text = systemPrompt)))
+                )
+
+                val response = com.example.data.api.RetrofitClient.service.generateContent("gemini-3.5-flash", apiKey, request)
+                val textResponse = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
+                if (!textResponse.isNullOrBlank()) {
+                    val list = mutableListOf<String>()
+                    val matches = Regex("\"([^\"]+)\"").findAll(textResponse)
+                    matches.forEach { match ->
+                        list.add(match.groupValues[1])
+                    }
+                    if (list.isNotEmpty()) {
+                        _followUpSuggestions.value = list.take(3)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to generate follow-ups", e)
+            }
+        }
+    }
+
+    /**
+     * Continues generation for the last assistant response (truncation handling).
+     */
+    fun continueGeneration() {
+        val currentSessionId = _activeSessionId.value ?: return
+        val lastMessage = activeMessages.value.lastOrNull() ?: return
+        if (lastMessage.role != "model") return
+
+        generatingJob = viewModelScope.launch {
+            _isGenerating.value = true
+            val model = userProfile.value.preferredModel
+            var currentText = lastMessage.text
+
+            val result = repository.sendChatMessageStream(
+                sessionId = currentSessionId,
+                userPrompt = "Continue writing your previous response. Do not repeat what you already wrote, just pick up exactly where you left off.",
+                modelToUse = model,
+                thinkingEnabled = _deepResearchEnabled.value || _thinkingEnabled.value,
+                ttsEnabled = _ttsEnabled.value,
+                onChunkReceived = { chunk ->
+                    currentText += chunk
+                    _currentStreamingMessage.value = lastMessage.copy(text = currentText)
+                }
+            )
+
+            _currentStreamingMessage.value = null
+            if (result.isSuccess) {
+                val continuedMessage = result.getOrThrow()
+                repository.addMessage(lastMessage.copy(text = currentText))
+
+                launch {
+                    repository.extractAndStoreMemory("Continue previous prompt", continuedMessage.text)
+                }
+                generateFollowUpSuggestions(continuedMessage.text)
+            }
+            _isGenerating.value = false
+        }
+    }
+
+    /**
+     * Edits a user's previous prompt and regenerates the thread from that point forward.
+     */
+    fun editAndRegenerate(messageId: Long, newText: String) {
+        val currentSessionId = _activeSessionId.value ?: return
+        generatingJob = viewModelScope.launch {
+            val messages = activeMessages.value
+            val index = messages.indexOfFirst { it.id == messageId }
+            if (index == -1) return@launch
+
+            // Delete subsequent messages
+            for (i in (index + 1) until messages.size) {
+                repository.deleteMessageById(messages[i].id)
+            }
+
+            // Update original user prompt
+            val editedUserMsg = messages[index].copy(text = newText)
+            repository.addMessage(editedUserMsg)
+
+            _isGenerating.value = true
+            var currentText = ""
+            val model = userProfile.value.preferredModel
+            val result = repository.sendChatMessageStream(
+                sessionId = currentSessionId,
+                userPrompt = newText,
+                modelToUse = model,
+                thinkingEnabled = _deepResearchEnabled.value || _thinkingEnabled.value,
+                ttsEnabled = _ttsEnabled.value,
+                onChunkReceived = { chunk ->
+                    currentText += chunk
+                    _currentStreamingMessage.value = com.example.data.local.ChatMessage(
+                        id = -1L,
+                        sessionId = currentSessionId,
+                        role = "model",
+                        text = currentText,
+                        modelUsed = model
+                    )
+                }
+            )
+
+            _currentStreamingMessage.value = null
+            if (result.isSuccess) {
+                val fullMessage = result.getOrThrow()
+                if (_ttsEnabled.value) {
+                    toggleTtsSpeaking(fullMessage)
+                }
+                launch {
+                    repository.extractAndStoreMemory(newText, fullMessage.text)
+                }
+                generateFollowUpSuggestions(fullMessage.text)
+            } else {
+                val errorMsg = result.exceptionOrNull()?.message ?: "An unknown error occurred"
+                val errorChatMessage = com.example.data.local.ChatMessage(
+                    sessionId = currentSessionId,
                     role = "model",
                     text = "Error: $errorMsg"
                 )
@@ -486,6 +713,78 @@ class SparkexViewModel(
             _currentlyPlayingMessageId.value = null
         }
         stopTtsSpeaking()
+    }
+
+    private fun setupUtteranceListener() {
+        textToSpeech?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                if (utteranceId?.startsWith("live_tts") == true) {
+                    _isSpeakingTts.value = -2L
+                } else {
+                    utteranceId?.toLongOrNull()?.let { id ->
+                        _isSpeakingTts.value = id
+                    }
+                }
+            }
+
+            override fun onDone(utteranceId: String?) {
+                checkTtsFinished(utteranceId)
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                checkTtsFinished(utteranceId)
+            }
+
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                checkTtsFinished(utteranceId)
+            }
+        })
+    }
+
+    private fun checkTtsFinished(utteranceId: String?) {
+        if (utteranceId?.startsWith("live_tts") == true) {
+            val speaking = textToSpeech?.isSpeaking ?: false
+            if (!speaking) {
+                _isSpeakingTts.value = null
+            }
+        } else {
+            utteranceId?.toLongOrNull()?.let { id ->
+                if (_isSpeakingTts.value == id) {
+                    _isSpeakingTts.value = null
+                }
+            }
+        }
+    }
+
+    fun speakLiveSentence(text: String) {
+        if (text.isBlank()) return
+        val params = android.os.Bundle().apply {
+            putString(android.speech.tts.TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "live_tts_${System.currentTimeMillis()}")
+        }
+        var cleanText = text
+        val imageRequestMatch = Regex("\\[IMAGE_REQUEST: (.*?)\\]").find(cleanText)
+        val mapRequestMatch = Regex("\\[MAP_REQUEST: (.*?)\\]").find(cleanText)
+        val cardRequestMatch = Regex("\\[CARD_REQUEST: (.*?)\\]").find(cleanText)
+        imageRequestMatch?.let { cleanText = cleanText.replace(it.value, "") }
+        mapRequestMatch?.let { cleanText = cleanText.replace(it.value, "") }
+        cardRequestMatch?.let { cleanText = cleanText.replace(it.value, "") }
+        
+        // Clean markdown indicators, emojis and extra formatting for ultra-clear speech
+        cleanText = cleanText
+            .replace(Regex("\\*+"), "")          // bold/italics
+            .replace(Regex("#+"), "")           // titles
+            .replace(Regex("`+"), "")           // code-blocks
+            .replace(Regex("^[-*+]\\s+"), "")   // lists
+            .replace(Regex("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+"), "") // emojis
+            .trim()
+
+        if (cleanText.isNotEmpty()) {
+            // Apply human-like, natural pacing settings dynamically
+            textToSpeech?.setSpeechRate(0.98f)
+            textToSpeech?.setPitch(1.0f)
+            textToSpeech?.speak(cleanText, android.speech.tts.TextToSpeech.QUEUE_ADD, params, "live_tts")
+        }
     }
 
     override fun onCleared() {

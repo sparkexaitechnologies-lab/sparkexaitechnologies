@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.speech.RecognizerIntent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -215,7 +216,24 @@ fun ChatScreen(
                 ) {
                     // Left: Hamburger menu
                     IconButton(onClick = onNavigateToSidebar) {
-                        Icon(imageVector = Icons.Outlined.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurface)
+                        val iconColor = MaterialTheme.colorScheme.onSurface
+                        androidx.compose.foundation.Canvas(modifier = Modifier.size(24.dp)) {
+                            val strokeW = 1.75.dp.toPx()
+                            drawLine(
+                                color = iconColor,
+                                start = androidx.compose.ui.geometry.Offset(3.dp.toPx(), 9.dp.toPx()),
+                                end = androidx.compose.ui.geometry.Offset(21.dp.toPx(), 9.dp.toPx()),
+                                strokeWidth = strokeW,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                            drawLine(
+                                color = iconColor,
+                                start = androidx.compose.ui.geometry.Offset(3.dp.toPx(), 15.dp.toPx()),
+                                end = androidx.compose.ui.geometry.Offset(15.dp.toPx(), 15.dp.toPx()),
+                                strokeWidth = strokeW,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -298,7 +316,16 @@ fun ChatScreen(
                                         isSpeakingTts = message.id == isSpeakingTts,
                                         onToggleTtsSpeech = { viewModel.toggleTtsSpeaking(message) },
                                         onRegenerate = {
-                                            viewModel.sendTextMessage("Regenerate the last response")
+                                            val index = messages.indexOf(message)
+                                            if (index > 0) {
+                                                val userMsg = messages[index - 1]
+                                                if (userMsg.role == "user") {
+                                                    viewModel.editAndRegenerate(userMsg.id, userMsg.text)
+                                                }
+                                            }
+                                        },
+                                        onEditPrompt = { editedText ->
+                                            viewModel.editAndRegenerate(message.id, editedText)
                                         },
                                         onRetry = onRetryAction,
                                         lowLatency = profile.lowLatencyEnabled
@@ -424,6 +451,39 @@ fun ChatScreen(
                         }
                     }
 
+                    // AI Follow-up Suggestions
+                    val followUpSuggestions by viewModel.followUpSuggestions.collectAsState()
+                    if (followUpSuggestions.isNotEmpty() && !isGenerating) {
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp)
+                        ) {
+                            items(followUpSuggestions) { suggestion ->
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)), RoundedCornerShape(16.dp))
+                                        .clickable {
+                                            viewModel.sendTextMessage(suggestion)
+                                            viewModel.clearFollowUpSuggestions()
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = suggestion,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+
 
 
                     // Premium redesigned input bar (ChatGPT Style)
@@ -481,22 +541,7 @@ fun ChatScreen(
 
                         // Right: Actions
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            // Live Talk Button (Headset)
-                            IconButton(
-                                onClick = { 
-                                    Toast.makeText(context, "Live Voice Mode (ChatGPT style) coming soon", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Headset,
-                                    contentDescription = "Live Talk",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
-                            // Microphone Button
+                            // Microphone Button Logic
                             val speechHelper = remember { com.example.util.SpeechHelper(context) }
                             var isListening by remember { mutableStateOf(false) }
                             val voicePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) { isListening = true; speechHelper.startListening() } }
@@ -504,9 +549,18 @@ fun ChatScreen(
                             DisposableEffect(Unit) {
                                 speechHelper.onResult = { textInput = it; isListening = false }
                                 speechHelper.onPartialResult = { textInput = it }
-                                speechHelper.onError = { isListening = false }
+                                speechHelper.onError = { _, _ -> isListening = false }
                                 onDispose { speechHelper.destroy() }
                             }
+
+                            // Live Talk Button (ChatGPT Style)
+                            ChatGPTLiveTalkButton(
+                                onClick = { 
+                                    showLiveVoiceModal = true
+                                },
+                                isListening = isListening,
+                                isSpeaking = isSpeakingTts != null
+                            )
 
                             IconButton(
                                 onClick = {
@@ -523,13 +577,17 @@ fun ChatScreen(
                                 )
                             }
 
-                            // Send Button (only if typing)
-                            if (textInput.isNotBlank() || attachedImagePath != null) {
+                            // Send / Stop Button
+                            if (textInput.isNotBlank() || attachedImagePath != null || isGenerating) {
                                 IconButton(
                                     onClick = {
-                                        if (textInput.isNotBlank() || attachedImagePath != null || attachedVoicePath != null) {
-                                            viewModel.sendTextMessage(textInput, attachedImagePath, attachedVoicePath)
-                                            textInput = ""; attachedImagePath = null; attachedVoicePath = null
+                                        if (isGenerating) {
+                                            viewModel.stopGenerating()
+                                        } else {
+                                            if (textInput.isNotBlank() || attachedImagePath != null || attachedVoicePath != null) {
+                                                viewModel.sendTextMessage(textInput, attachedImagePath, attachedVoicePath)
+                                                textInput = ""; attachedImagePath = null; attachedVoicePath = null
+                                            }
                                         }
                                     },
                                     modifier = Modifier
@@ -538,8 +596,8 @@ fun ChatScreen(
                                         .background(MaterialTheme.colorScheme.primary)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.ArrowUpward,
-                                        contentDescription = "Send",
+                                        imageVector = if (isGenerating) Icons.Outlined.Stop else Icons.Outlined.ArrowUpward,
+                                        contentDescription = if (isGenerating) "Stop" else "Send",
                                         tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -556,22 +614,62 @@ fun ChatScreen(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .padding(bottom = 76.dp, start = 16.dp)
-                            .width(260.dp)
+                            .width(280.dp)
                             .clip(RoundedCornerShape(24.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
                             .padding(12.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AttachmentMenuItem(icon = Icons.Outlined.CameraAlt, title = "Camera") {
-                                attachedImagePath = "/simulated/camera_capture.jpg"
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "PREMIUM TOOLS",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                            val deepResearchEnabled by viewModel.deepResearchEnabled.collectAsState()
+                            val thinkingEnabled by viewModel.thinkingEnabled.collectAsState()
+
+                            AttachmentMenuItem(
+                                icon = if (deepResearchEnabled) Icons.Outlined.Science else Icons.Outlined.Science,
+                                title = "Deep Research",
+                                isSelected = deepResearchEnabled
+                            ) {
+                                viewModel.toggleDeepResearch()
                                 showAttachmentMenu = false
                             }
-                            AttachmentMenuItem(icon = Icons.Outlined.Image, title = "Gallery") {
-                                attachedImagePath = "/simulated/gallery_upload.jpg"
+                            AttachmentMenuItem(
+                                icon = if (thinkingEnabled) Icons.Outlined.Psychology else Icons.Outlined.Psychology,
+                                title = "Thinking",
+                                isSelected = thinkingEnabled
+                            ) {
+                                viewModel.toggleThinking()
                                 showAttachmentMenu = false
                             }
-                            AttachmentMenuItem(icon = Icons.Outlined.Mic, title = "Voice") {
-                                attachedVoicePath = "/simulated/voice_snippet.mp3"
+                            AttachmentMenuItem(icon = Icons.Outlined.AutoAwesome, title = "Image Generation") {
+                                onNavigateToImages()
+                                showAttachmentMenu = false
+                            }
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                            )
+
+                            Text(
+                                text = "MEMBERSHIPS",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                            AttachmentMenuItem(icon = Icons.Outlined.Star, title = "Upgrade to Plus (₹199)") {
+                                onNavigateToMemberships()
+                                showAttachmentMenu = false
+                            }
+                            AttachmentMenuItem(icon = Icons.Outlined.WorkspacePremium, title = "Upgrade to Pro (₹399)") {
+                                onNavigateToMemberships()
                                 showAttachmentMenu = false
                             }
                         }
@@ -1064,7 +1162,8 @@ fun ChatMessageBubble(
     isSpeakingTts: Boolean = false,
     onToggleTtsSpeech: () -> Unit = {},
     isGenerating: Boolean = false,
-    lowLatency: Boolean = false
+    lowLatency: Boolean = false,
+    onEditPrompt: (String) -> Unit = {}
 ) {
     val isUser = message.role == "user"
     var showActions by remember { mutableStateOf(false) }
@@ -1072,6 +1171,41 @@ fun ChatMessageBubble(
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
     var isLiked by remember { mutableStateOf(false) }
     var isDisliked by remember { mutableStateOf(false) }
+
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editedTextState by remember(message.text) { mutableStateOf(message.text) }
+
+    if (showEditDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Edit Prompt", fontWeight = FontWeight.Bold) },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = editedTextState,
+                    onValueChange = { editedTextState = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showEditDialog = false
+                        onEditPrompt(editedTextState)
+                    }
+                ) {
+                    Text("Regenerate", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
 
     val entryAlpha = remember { Animatable(if (lowLatency) 1f else 0f) }
     val entrySlide = remember { Animatable(if (lowLatency) 0f else 16.dp.value) }
@@ -1559,7 +1693,13 @@ fun ChatMessageBubble(
                         contentDescription = "Share",
                         modifier = Modifier
                             .size(18.dp)
-                            .clickable { Toast.makeText(context, "Share action", Toast.LENGTH_SHORT).show() },
+                            .clickable {
+                                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_TEXT, message.text)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Sparkex AI Response"))
+                            },
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                     // Copy
@@ -1608,7 +1748,7 @@ fun ChatMessageBubble(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .size(18.dp)
-                            .clickable { /* Handle Edit Prompt */ }
+                            .clickable { showEditDialog = true }
                     )
                 }
             }
@@ -1619,12 +1759,14 @@ fun ChatMessageBubble(
 fun AttachmentMenuItem(
     icon: ImageVector,
     title: String,
+    isSelected: Boolean = false,
     onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
+            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent)
             .clickable { onClick() }
             .padding(vertical = 10.dp, horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1633,14 +1775,14 @@ fun AttachmentMenuItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface,
+            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(20.dp)
         )
         Text(
             text = title,
-            fontWeight = FontWeight.Bold,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Bold,
             fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurface
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -1746,37 +1888,85 @@ fun LiveVoiceModalOverlay(
     var partialText by remember { mutableStateOf("") }
     var hasSpoken by remember { mutableStateOf(false) }
     
+    val isSpeakingTts by viewModel.isSpeakingTts.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()
     val streamingMessage by viewModel.currentStreamingMessage.collectAsState()
     val speechHelper = remember { com.example.util.SpeechHelper(context) }
     
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { if (it) speechHelper.startListening() else onEnd() }
+    ) { granted ->
+        if (granted) {
+            speechHelper.startListening()
+        } else {
+            Toast.makeText(context, "Microphone permission is required for Live Talk.", Toast.LENGTH_LONG).show()
+            onEnd()
+        }
+    }
     
     DisposableEffect(Unit) {
-        speechHelper.onResult = { hasSpoken = true; onResult(it) }
+        viewModel.setLiveVoiceModeActive(true)
+        
+        val audioManager = context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+        val originalAudioMode = audioManager.mode
+        try {
+            audioManager.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
+        } catch (e: Exception) {
+            android.util.Log.e("LiveVoice", "Error setting audio mode to MODE_IN_COMMUNICATION", e)
+        }
+
+        speechHelper.onResult = { resultText ->
+            hasSpoken = true
+            partialText = ""
+            onResult(resultText)
+        }
         speechHelper.onPartialResult = { partialText = it }
-        speechHelper.onError = { partialText = "Try speaking again..." }
+        speechHelper.onError = { errorCode, errorMsg -> 
+            if (errorCode == android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                Toast.makeText(context, "Microphone permission is required.", Toast.LENGTH_SHORT).show()
+                onEnd()
+            } else {
+                partialText = "Listening..."
+            }
+        }
+        speechHelper.onBeginningOfSpeech = {
+            // Natural interruption support: stop AI speaking & generating immediately!
+            if (viewModel.isSpeakingTts.value != null || viewModel.isGenerating.value) {
+                viewModel.stopTtsSpeaking()
+                viewModel.stopGenerating()
+            }
+        }
         
         if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             speechHelper.startListening()
-        } else permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+        } else {
+            permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+        }
         
-        onDispose { speechHelper.destroy() }
+        onDispose {
+            viewModel.setLiveVoiceModeActive(false)
+            try {
+                audioManager.mode = originalAudioMode
+            } catch (e: Exception) {
+                android.util.Log.e("LiveVoice", "Error resetting audio mode", e)
+            }
+            speechHelper.destroy()
+        }
     }
     
-    LaunchedEffect(isGenerating) {
-        if (!isGenerating && hasSpoken) {
-            delay(800)
+    LaunchedEffect(isGenerating, isSpeakingTts) {
+        if (!isGenerating && isSpeakingTts == null && hasSpoken) {
+            delay(400)
             partialText = ""
-            speechHelper.startListening()
+            if (!isMuted) {
+                speechHelper.startListening()
+            }
         }
     }
 
     val currentState = when {
         isGenerating && (streamingMessage?.text.isNullOrEmpty() || streamingMessage?.text == "Thinking...") -> "Thinking"
-        isGenerating -> "Speaking"
+        isGenerating || isSpeakingTts != null -> "Speaking"
         else -> "Listening"
     }
 
@@ -1913,6 +2103,43 @@ fun ElegantLoadingIndicator(modifier: Modifier = Modifier) {
                     .clip(CircleShape)
                     .background(dotColor)
             )
+        }
+    }
+}
+
+@Composable
+fun ChatGPTLiveTalkButton(
+    onClick: () -> Unit,
+    isListening: Boolean,
+    isSpeaking: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF6C5CE7))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(2.5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val heights = listOf(6.dp, 12.dp, 16.dp, 8.dp)
+            heights.forEach { h ->
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(h)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                )
+            }
         }
     }
 }

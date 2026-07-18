@@ -170,45 +170,48 @@ fun MembershipsScreen(
                     }
                 }
 
-                // 1. Free Tier Card
+                // 1. Plus Tier Card
                 item {
-                    val isFreeActive = profile.subscriptionType == "Free" || profile.subscriptionType.isBlank()
+                    val isPlusActive = profile.subscriptionType == "Plus"
                     PremiumPlanCard(
-                        title = "Free Plan",
-                        price = "₹0 / month",
-                        isActive = isFreeActive,
-                        badge = "BASIC ACCESS",
+                        title = "Plus Plan",
+                        price = "₹199 / month",
+                        isActive = isPlusActive,
+                        badge = "POPULAR CHOICE",
                         benefits = listOf(
-                            "Access to standard reasoning models",
-                            "Full chat history access",
-                            "Standard response latency",
-                            "Offline session database backup"
+                            "Ultra-fast processing latency",
+                            "Interactive Full-Screen Live Voice Mode",
+                            "Deep Research & Thinking modes",
+                            "Image Generation capabilities",
+                            "Analytical reasoning model priority"
                         ),
                         borderColor = MaterialTheme.colorScheme.outline,
                         bgColor = MaterialTheme.colorScheme.surface,
-                        accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        buttonText = if (isFreeActive) "Currently Active" else "Select Free Plan",
+                        accentColor = Color.White,
+                        buttonText = if (isPlusActive) "Currently Active" else "Upgrade to Plus",
                         onAction = {
-                            viewModel.updateSubscription("Free")
-                            Toast.makeText(context, "Downgraded to Free Tier", Toast.LENGTH_SHORT).show()
+                            viewModel.updateSubscription("Plus")
+                            selectedPlanForSuccess = "Plus Plan"
+                            showSuccessAnimation = true
+                            Toast.makeText(context, "Upgraded to Plus Plan", Toast.LENGTH_SHORT).show()
                         }
                     )
                 }
 
                 // 2. Pro Tier Card
                 item {
-                    val isProActive = profile.subscriptionType == "Pro" || profile.subscriptionType == "Pro Plus"
+                    val isProActive = profile.subscriptionType == "Pro"
                     PremiumPlanCard(
                         title = "Pro Plan",
-                        price = "₹199 / month",
+                        price = "₹399 / month",
                         isActive = isProActive,
-                        badge = "POPULAR CHOICE",
+                        badge = "ULTIMATE ACCESS",
                         benefits = listOf(
-                            "Ultra-fast processing latency",
-                            "Interactive Full-Screen Live Voice Mode",
-                            "Advanced file & image upload assistant",
-                            "Create dynamic folders to organize chats",
-                            "Analytical reasoning model priority"
+                            "Everything in Plus tier",
+                            "Unlimited High-Res Image Generation",
+                            "Early access to new experimental models",
+                            "Premium developer API access",
+                            "Priority human support channel"
                         ),
                         borderColor = MaterialTheme.colorScheme.outline, // Clean premium high-contrast border
                         bgColor = MaterialTheme.colorScheme.surface,

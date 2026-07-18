@@ -51,5 +51,6 @@ data class UserProfile(
     val selectedLanguage: String = "English",
     val notificationsEnabled: Boolean = true,
     val chatHistoryAutoSave: Boolean = true,
-    val voiceType: String = "Amber (Female)"
+    val voiceType: String = "Amber (Female)",
+    val aiMemory: String = ""
 )

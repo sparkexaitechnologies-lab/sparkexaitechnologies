@@ -179,17 +179,51 @@ class SparkexRepository(
 3. IMAGE GENERATION: If the user asks to create/generate an image, respond strictly with this format: [IMAGE_REQUEST: detailed description of the scene] followed by a friendly response.
 4. MAPS/LOCATION: If the user asks for directions, places, or spots, provide the visual coordinates or location names in this format: [MAP_REQUEST: Location Name, City].
 5. TASK SCHEDULING/CARDS: If the user wants to set a daily digest, job tracker, or reminder, return a custom layout token: [CARD_REQUEST: Task Name | Time | Instructions].
-6. TONALITY: Keep responses elegant, incredibly fast, and smart, matching a premium flagship AI assistant."""
+6. TONALITY: Keep responses elegant, incredibly fast, and smart, matching a premium flagship AI assistant.
+7. MULTILINGUAL & VOICE: If the user communicates in Hindi, Telugu, or English, respond in the exact same language (using native script, e.g., Devanagari for Hindi, Telugu script, or English). Keep conversational responses short, brief, and direct to reduce speech synthesis latency and maintain a fluid conversation flow.
+8. ADVANCED AI MODES:
+   - Deep Research/Web Search: Synthesize broad data points naturally and intelligently when dealing with current events. (Google Search grounding is enabled).
+   - Code Interpreter: When asked to write, fix, or interpret code, provide correct, idiomatic code blocks and explain them concisely.
+   - Math Solver: Step-by-step mathematical reasoning for complex equations.
+   - Translation: Flawless, context-aware translations.
+   - Document Summarizer: Extract key points and actionable insights efficiently.
+   - Tables/Charts: If requested, output well-formatted Markdown tables for data visualization."""
 
-            val systemInstructionContent = Content(parts = listOf(Part(text = systemInstructionText)))
+            val profileData = userProfileDao.getUserProfile()
+            val finalSystemInstruction = if (profileData != null && profileData.aiMemory.isNotBlank()) {
+                systemInstructionText + "\n\n7. USER MEMORY & PERSONALIZED FACTS:\n" + profileData.aiMemory
+            } else {
+                systemInstructionText
+            }
+            val systemInstructionContent = Content(parts = listOf(Part(text = finalSystemInstruction)))
 
             val request = GenerateContentRequest(
                 contents = contents,
                 generationConfig = genConfig,
-                systemInstruction = systemInstructionContent
+                systemInstruction = systemInstructionContent,
+                tools = listOf(com.example.data.api.Tool(googleSearch = com.example.data.api.GoogleSearch()))
             )
 
-            val response = RetrofitClient.service.generateContent(targetModel, apiKey, request)
+            var attempts = 0
+            val maxAttempts = 3
+            var response: GenerateContentResponse? = null
+            var lastException: Exception? = null
+            while (attempts < maxAttempts) {
+                try {
+                    attempts++
+                    response = RetrofitClient.service.generateContent(targetModel, apiKey, request)
+                    break
+                } catch (e: Exception) {
+                    lastException = e
+                    if (attempts < maxAttempts) {
+                        kotlinx.coroutines.delay(400L * attempts)
+                    }
+                }
+            }
+
+            if (response == null) {
+                return@withContext Result.failure(com.example.util.ChatErrorHandler.handleException(lastException ?: Exception("Network request failed after $maxAttempts attempts")))
+            }
             
             if (response.error != null) {
                 return@withContext Result.failure(Exception("Gemini API Error: ${response.error.message}"))
@@ -224,7 +258,7 @@ class SparkexRepository(
             Result.success(aiMessage)
         } catch (e: Exception) {
             Log.e(tag, "Error in sendChatMessage", e)
-            Result.failure(e)
+            Result.failure(com.example.util.ChatErrorHandler.handleException(e))
         }
     }
 
@@ -309,17 +343,52 @@ class SparkexRepository(
 3. IMAGE GENERATION: If the user asks to create/generate an image, respond strictly with this format: [IMAGE_REQUEST: detailed description of the scene] followed by a friendly response.
 4. MAPS/LOCATION: If the user asks for directions, places, or spots, provide the visual coordinates or location names in this format: [MAP_REQUEST: Location Name, City].
 5. TASK SCHEDULING/CARDS: If the user wants to set a daily digest, job tracker, or reminder, return a custom layout token: [CARD_REQUEST: Task Name | Time | Instructions].
-6. TONALITY: Keep responses elegant, incredibly fast, and smart, matching a premium flagship AI assistant."""
+6. TONALITY: Keep responses elegant, incredibly fast, and smart, matching a premium flagship AI assistant.
+7. MULTILINGUAL & VOICE: If the user communicates in Hindi, Telugu, or English, respond in the exact same language (using native script, e.g., Devanagari for Hindi, Telugu script, or English). Keep conversational responses short, brief, and direct to reduce speech synthesis latency and maintain a fluid conversation flow.
+8. ADVANCED AI MODES:
+   - Deep Research/Web Search: Synthesize broad data points naturally and intelligently when dealing with current events. (Google Search grounding is enabled).
+   - Code Interpreter: When asked to write, fix, or interpret code, provide correct, idiomatic code blocks and explain them concisely.
+   - Math Solver: Step-by-step mathematical reasoning for complex equations.
+   - Translation: Flawless, context-aware translations.
+   - Document Summarizer: Extract key points and actionable insights efficiently.
+   - Tables/Charts: If requested, output well-formatted Markdown tables for data visualization."""
 
-            val systemInstructionContent = Content(parts = listOf(Part(text = systemInstructionText)))
+            val profileData = userProfileDao.getUserProfile()
+            val finalSystemInstruction = if (profileData != null && profileData.aiMemory.isNotBlank()) {
+                systemInstructionText + "\n\n7. USER MEMORY & PERSONALIZED FACTS:\n" + profileData.aiMemory
+            } else {
+                systemInstructionText
+            }
+            val systemInstructionContent = Content(parts = listOf(Part(text = finalSystemInstruction)))
 
             val request = GenerateContentRequest(
                 contents = contents,
                 generationConfig = genConfig,
-                systemInstruction = systemInstructionContent
+                systemInstruction = systemInstructionContent,
+                tools = listOf(com.example.data.api.Tool(googleSearch = com.example.data.api.GoogleSearch()))
             )
 
-            val response = RetrofitClient.service.generateContentStream(targetModel, apiKey, request)
+            var attempts = 0
+            val maxAttempts = 3
+            var response: okhttp3.ResponseBody? = null
+            var lastException: Exception? = null
+            while (attempts < maxAttempts) {
+                try {
+                    attempts++
+                    response = RetrofitClient.service.generateContentStream(targetModel, apiKey, request)
+                    break
+                } catch (e: Exception) {
+                    lastException = e
+                    if (attempts < maxAttempts) {
+                        kotlinx.coroutines.delay(400L * attempts)
+                    }
+                }
+            }
+
+            if (response == null) {
+                throw lastException ?: Exception("Network request failed after $maxAttempts attempts")
+            }
+
             val reader = response.byteStream().bufferedReader()
             val jsonBuffer = java.lang.StringBuilder()
             var textReply = ""
@@ -375,7 +444,7 @@ class SparkexRepository(
             Result.success(aiMessage)
         } catch (e: Exception) {
             Log.e(tag, "Error in sendChatMessageStream", e)
-            Result.failure(e)
+            Result.failure(com.example.util.ChatErrorHandler.handleException(e))
         }
     }
 
@@ -434,7 +503,7 @@ class SparkexRepository(
             Result.success(localPath)
         } catch (e: Exception) {
             Log.e(tag, "Image generation error", e)
-            Result.failure(e)
+            Result.failure(com.example.util.ChatErrorHandler.handleException(e))
         }
     }
 
@@ -458,5 +527,67 @@ class SparkexRepository(
         val file = File(dir, "${prefix}_${UUID.randomUUID()}.$extension")
         file.writeBytes(bytes)
         return file.absolutePath
+    }
+
+    /**
+     * Uses Gemini to extract key long-term memories about the user and saves them in UserProfile.
+     */
+    suspend fun extractAndStoreMemory(userPrompt: String, aiResponse: String) = withContext(Dispatchers.IO) {
+        try {
+            val apiKey = BuildConfig.GEMINI_API_KEY
+            if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") return@withContext
+
+            val profile = getOrCreateProfile()
+            val systemPrompt = """You are a smart memory extractor. Your job is to analyze the user's prompt and the AI's response, and extract any key long-term facts, preferences, name, or characteristics about the user that should be stored in their profile memory.
+Previous memory:
+${profile.aiMemory}
+
+Extract any new facts. Combine them with previous memory. Return only a clean, concise, bulleted list of all user facts/preferences. Keep it short (maximum 4 bullet points, under 100 words). If no useful long-term facts are present, return the previous memory unchanged."""
+
+            val request = GenerateContentRequest(
+                contents = listOf(
+                    Content(role = "user", parts = listOf(Part(text = "User message: $userPrompt\nAI response: $aiResponse")))
+                ),
+                systemInstruction = Content(parts = listOf(Part(text = systemPrompt)))
+            )
+
+            val response = RetrofitClient.service.generateContent("gemini-3.5-flash", apiKey, request)
+            val newMemory = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
+            if (!newMemory.isNullOrBlank() && !newMemory.contains("Error", ignoreCase = true)) {
+                updateProfile(profile.copy(aiMemory = newMemory))
+                Log.d(tag, "AI Memory updated: $newMemory")
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to extract memory", e)
+        }
+    }
+
+    /**
+     * Uses Gemini to generate a creative 2-3 word chat session title and updates the database.
+     */
+    suspend fun generateSmartTitle(sessionId: String, userPrompt: String, aiResponse: String) = withContext(Dispatchers.IO) {
+        try {
+            val apiKey = BuildConfig.GEMINI_API_KEY
+            if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") return@withContext
+
+            val systemPrompt = "You are a smart title generator. Generate a short, creative, and punchy chat session title (maximum 3 words, no quotation marks, no markdown, no punctuation) based on the user's first query and the AI's reply. Respond with only the title text itself and nothing else."
+
+            val request = GenerateContentRequest(
+                contents = listOf(Content(parts = listOf(Part(text = "Prompt: $userPrompt\nResponse: $aiResponse")))),
+                systemInstruction = Content(parts = listOf(Part(text = systemPrompt)))
+            )
+
+            val response = RetrofitClient.service.generateContent("gemini-3.5-flash", apiKey, request)
+            val title = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
+            if (!title.isNullOrBlank() && !title.contains("Error", ignoreCase = true)) {
+                val session = chatSessionDao.getSessionByIdSync(sessionId)
+                if (session != null) {
+                    chatSessionDao.updateSession(session.copy(title = title))
+                    Log.d(tag, "Session title updated to: $title")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to generate smart title", e)
+        }
     }
 }
